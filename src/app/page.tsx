@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   LayoutDashboard, GitBranch, Users, Calendar, Settings,
   Sun, Moon, LogOut, Bell, Search, Plus, ChevronRight,
