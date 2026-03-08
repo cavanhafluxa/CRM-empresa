@@ -285,7 +285,7 @@ const StatCard = ({title,value,change,icon:Icon,color,loading}:any) => (
 
 const Dashboard = ({leads,company,addToast}:any) => {
   const [loading,setLoading]=useState(true)
-  useState(()=>{setTimeout(()=>setLoading(false),800) as any})
+  useEffect(()=>{setTimeout(()=>setLoading(false),800)},[]);
   const totalLeads=leads.length
   const fechados=leads.filter((l:any)=>l.pipeline_stage==='Fechado').length
   const conversao=totalLeads?Math.round((fechados/totalLeads)*100):0
@@ -397,7 +397,7 @@ const LeadModalComp = ({lead,open,onClose,onSave,onDelete,role,addToast}:any) =>
   const [note,setNote]=useState('')
   const [notes,setNotes]=useState([{id:1,text:'Cliente tem urgência para fechar até o final do mês.',user:'Matheus',created_at:'2025-01-20'}])
   const [confirmDelete,setConfirmDelete]=useState(false)
-  useState(()=>{if(lead)setForm(lead)} as any)
+  useEffect(()=>{if(lead)setForm(lead)},[lead])
   const set=(k:string,v:any)=>setForm((f:any)=>({...f,[k]:v}))
   const canDelete=['founder','gestor'].includes(role)
   const handleSave=()=>{onSave(form);addToast('Lead atualizado com sucesso!','success');onClose()}
