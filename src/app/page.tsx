@@ -390,27 +390,29 @@ function Dashboard({leads,company,addToast}:any){
         </div>
 
         {/* Real chart */}
-        <div className="p-4 rounded-2xl border border-white/[0.07] bg-white/[0.02]">
+        <div className="p-4 rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
           <p className="text-xs font-semibold text-white mb-1">Evolução de Leads</p>
           <p className="text-[10px] text-slate-600 mb-3">Últimos 6 meses — dados reais</p>
           {loading?<Sk className="h-36"/>:(
-            <ResponsiveContainer width="100%" height={140}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#34D399" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#34D399" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)"/>
-                <XAxis dataKey="month" tick={{fill:'#64748B',fontSize:10}} axisLine={false} tickLine={false}/>
-                <YAxis tick={{fill:'#64748B',fontSize:10}} axisLine={false} tickLine={false} allowDecimals={false}/>
-                <Tooltip content={<CT/>}/>
-                <Area type="monotone" dataKey="leads" name="Leads" stroke="#34D399" strokeWidth={2} fill="url(#g1)"/>
-              </AreaChart>
-            </ResponsiveContainer>
+            <div style={{height:140}}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{top:4,right:4,left:-20,bottom:0}}>
+                  <defs>
+                    <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#34D399" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#34D399" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)"/>
+                  <XAxis dataKey="month" tick={{fill:'#64748B',fontSize:10}} axisLine={false} tickLine={false}/>
+                  <YAxis tick={{fill:'#64748B',fontSize:10}} axisLine={false} tickLine={false} allowDecimals={false}/>
+                  <Tooltip content={<CT/>}/>
+                  <Area type="monotone" dataKey="leads" name="Leads" stroke="#34D399" strokeWidth={2} fill="url(#g1)"/>
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           )}
-          {leads.length===0&&!loading&&<p className="text-center text-xs text-slate-600 -mt-20 relative">Nenhum lead ainda. Crie leads na Pipeline!</p>}
+          {leads.length===0&&!loading&&<p className="text-center text-xs text-slate-600 mt-2">Nenhum lead ainda. Crie leads na Pipeline!</p>}
         </div>
 
         {/* Donut */}
@@ -585,18 +587,164 @@ function LeadModal({lead,open,onClose,onSave,onDelete,role,addToast,funnels,comp
 // ══════════════════════════════════════════════════════════════════
 // PIPELINE
 // ══════════════════════════════════════════════════════════════════
-function Pipeline({leads,setLeads,role,addToast,company,funnels}:any){
+function Pipeline({leads,setLeads,role,addToast,company,funnels,users}:any){
   const [selected,setSelected]=useState<any>(null)
   const [showNew,setShowNew]=useState(false)
   const [newLead,setNewLead]=useState<any>({pipeline_stage:'Novo Lead',nivel_interesse:3})
   const [dragId,setDragId]=useState<string|null>(null)
   const [dragOver,setDragOver]=useState<string|null>(null)
-  const [filterFunnel,setFilterFunnel]=useState('all')
+  const [filterColab,setFilterColab]=useState('all')
   const [colLabels,setColLabels]=useState<Record<string,string>>({})
   const [editCol,setEditCol]=useState<string|null>(null)
   const [editVal,setEditVal]=useState('')
   const [creating,setCreating]=useState(false)
   const canEdit=['founder','gestor'].includes(role)
+
+  useEffect(()=>{
+    sb.from('pipeline_columns').select('*').eq('company_id',company.id).then(({data})=>{
+      if(data){const m:any={};data.forEach((r:any)=>{m[r.stage_key]=r.label});setColLabels(m)}
+    })
+  },[company.id])
+
+  const lbl=(s:string)=>colLabels[s]||s
+  const saveCol=async(stage:string,label:string)=>{
+    if(!canEdit||!label.trim()) return setEditCol(null)
+    await sb.from('pipeline_columns').upsert({company_id:company.id,stage_key:stage,label:label.trim()},{onConflict:'company_id,stage_key'})
+    setColLabels(p=>({...p,[stage]:label.trim()}));setEditCol(null);addToast('Coluna renomeada!','success')
+  }
+
+  const filtered=filterColab==='all'?leads
+    :filterColab==='none'?leads.filter((l:any)=>!l.assigned_to)
+    :leads.filter((l:any)=>l.assigned_to===filterColab)
+
+  const drop=async(stage:string)=>{
+    if(!dragId) return
+    const {error}=await sb.from('leads').update({pipeline_stage:stage,updated_at:new Date().toISOString()}).eq('id',dragId)
+    if(!error) setLeads((ls:any)=>ls.map((l:any)=>l.id===dragId?{...l,pipeline_stage:stage}:l))
+    setDragId(null);setDragOver(null)
+  }
+
+  const create=async()=>{
+    if(!newLead.nome?.trim()){addToast('Nome é obrigatório.','error');return}
+    setCreating(true)
+    const {data,error}=await sb.from('leads').insert({
+      company_id:company.id,...newLead,
+      valor_estimado:Number(newLead.valor_estimado)||0,
+      assigned_to:newLead.assigned_to||null,
+      status:'ativo',
+    }).select().single()
+    setCreating(false)
+    if(error){addToast('Erro ao criar: '+error.message,'error');return}
+    setLeads((ls:any)=>[data,...ls])
+    setNewLead({pipeline_stage:'Novo Lead',nivel_interesse:3})
+    setShowNew(false);addToast('Lead criado!','success')
+  }
+
+  const getUser=(id:string)=>users?.find((u:any)=>u.id===id)
+
+  return (
+    <div className="flex-1 overflow-hidden flex flex-col">
+      <Header title="Pipeline" subtitle={`${filtered.length} leads`} actions={
+        <div className="flex gap-2 items-center">
+          <select value={filterColab} onChange={e=>setFilterColab(e.target.value)}
+            className="text-xs bg-white/5 border border-white/10 text-slate-300 rounded-lg px-2 py-1.5 focus:outline-none max-w-[130px]">
+            <option value="all" className="bg-slate-900">Todos</option>
+            <option value="none" className="bg-slate-900">Sem responsável</option>
+            {users?.map((u:any)=><option key={u.id} value={u.id} className="bg-slate-900">{u.display_name||u.full_name}</option>)}
+          </select>
+          <button onClick={()=>setShowNew(true)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold shadow-md shadow-emerald-500/20"><Plus size={13}/>Lead</button>
+        </div>
+      }/>
+      <div className="flex-1 overflow-x-auto p-3">
+        <div className="flex gap-2.5 h-full" style={{minWidth:`${STAGES.length*185}px`}}>
+          {STAGES.map(stage=>{
+            const sl=filtered.filter((l:any)=>l.pipeline_stage===stage)
+            const sv=sl.reduce((s:number,l:any)=>s+(l.valor_estimado||0),0)
+            const m=SM[stage]
+            const isOver=dragOver===stage
+            return (
+              <div key={stage}
+                className={cx('flex flex-col rounded-2xl border transition-all flex-1 min-w-[170px]',isOver?'border-white/20 bg-white/[0.05]':'border-white/[0.06] bg-white/[0.015]')}
+                onDragOver={e=>{e.preventDefault();setDragOver(stage)}}
+                onDrop={()=>drop(stage)}
+                onDragLeave={()=>setDragOver(null)}>
+                <div className="p-3 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{background:m.dot}}/>
+                    {editCol===stage&&canEdit?(
+                      <input autoFocus value={editVal} onChange={e=>setEditVal(e.target.value)}
+                        onBlur={()=>saveCol(stage,editVal)} onKeyDown={e=>{if(e.key==='Enter')saveCol(stage,editVal);if(e.key==='Escape')setEditCol(null)}}
+                        className="flex-1 bg-transparent text-white text-xs font-semibold focus:outline-none border-b border-emerald-500/60 min-w-0"/>
+                    ):(
+                      <span className="text-xs font-semibold text-white truncate flex-1">{lbl(stage)}</span>
+                    )}
+                    {canEdit&&<button onClick={()=>{setEditCol(stage);setEditVal(lbl(stage))}} className="text-slate-600 hover:text-slate-300 shrink-0"><PenLine size={10}/></button>}
+                    <span className={cx('text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0',m.bg,m.text)}>{sl.length}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-600">R${sv.toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                  {sl.map((lead:any)=>{
+                    const assignee=lead.assigned_to?getUser(lead.assigned_to):null
+                    return (
+                      <div key={lead.id} draggable onDragStart={()=>setDragId(lead.id)} onClick={()=>setSelected(lead)}
+                        className="p-3 rounded-xl bg-slate-900/80 border border-white/[0.07] hover:border-white/[0.15] cursor-pointer transition-all active:scale-95">
+                        <p className="text-xs font-semibold text-white mb-1 leading-tight">{lead.nome}</p>
+                        <p className="text-[10px] text-slate-500 mb-2">{lead.servico||'—'}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white">R${(lead.valor_estimado||0).toLocaleString()}</span>
+                          <div className="flex gap-0.5">{[1,2,3,4,5].map(n=><Star key={n} size={9} fill={n<=(lead.nivel_interesse||0)?'#FBBF24':'none'} stroke={n<=(lead.nivel_interesse||0)?'#FBBF24':'#334155'}/>)}</div>
+                        </div>
+                        {assignee&&(
+                          <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-white/[0.06]">
+                            <Av name={assignee.display_name||assignee.full_name} size="xs" url={assignee.avatar_url}/>
+                            <span className="text-[10px] text-slate-500 truncate">{assignee.display_name||assignee.full_name}</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {sl.length===0&&(
+                    <div className={cx('flex flex-col items-center justify-center py-6 rounded-xl border-2 border-dashed',isOver?'border-white/20':'border-white/[0.04]')}>
+                      <Move size={14} className="text-slate-700 mb-1"/><p className="text-[10px] text-slate-700">Arraste aqui</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <Modal open={showNew} onClose={()=>setShowNew(false)} title="Novo Lead" size="md">
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Nome" value={newLead.nome} onChange={(v:string)=>setNewLead((f:any)=>({...f,nome:v}))} required icon={User}/>
+            <Field label="Telefone" value={newLead.telefone} onChange={(v:string)=>setNewLead((f:any)=>({...f,telefone:v}))} icon={Phone}/>
+          </div>
+          <Field label="Serviço" value={newLead.servico} onChange={(v:string)=>setNewLead((f:any)=>({...f,servico:v}))} icon={Briefcase}/>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Valor (R$)" value={newLead.valor_estimado} onChange={(v:string)=>setNewLead((f:any)=>({...f,valor_estimado:v}))} type="number" icon={DollarSign}/>
+            <Sel label="Etapa" value={newLead.pipeline_stage} onChange={(v:string)=>setNewLead((f:any)=>({...f,pipeline_stage:v}))} options={STAGES.map(s=>({value:s,label:s}))}/>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Sel label="Origem" value={newLead.origem||''} onChange={(v:string)=>setNewLead((f:any)=>({...f,origem:v}))} options={[{value:'',label:'Selecione'},{value:'Instagram',label:'Instagram'},{value:'Google Ads',label:'Google Ads'},{value:'WhatsApp',label:'WhatsApp'},{value:'Indicação',label:'Indicação'},{value:'Site',label:'Site'},{value:'Facebook',label:'Facebook'}]}/>
+            <Sel label="Responsável" value={newLead.assigned_to||''} onChange={(v:string)=>setNewLead((f:any)=>({...f,assigned_to:v||null}))} options={[{value:'',label:'Sem responsável'},...(users||[]).map((u:any)=>({value:u.id,label:u.display_name||u.full_name}))]}/>
+          </div>
+          <div className="flex gap-2 justify-end pt-2">
+            <button onClick={()=>setShowNew(false)} className="px-4 py-2 rounded-lg border border-white/10 text-slate-400 text-sm hover:bg-white/5">Cancelar</button>
+            <button onClick={create} disabled={creating} className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium disabled:opacity-60">{creating?'Criando...':'Criar Lead'}</button>
+          </div>
+        </div>
+      </Modal>
+
+      <LeadModal lead={selected} open={!!selected} onClose={()=>setSelected(null)}
+        onSave={u=>setLeads((ls:any)=>ls.map((l:any)=>l.id===u.id?u:l))}
+        onDelete={id=>setLeads((ls:any)=>ls.filter((l:any)=>l.id!==id))}
+        role={role} addToast={addToast} funnels={funnels} companyId={company.id}/>
+    </div>
+  )
+}
 
   useEffect(()=>{
     sb.from('pipeline_columns').select('*').eq('company_id',company.id).then(({data})=>{
@@ -1195,9 +1343,12 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
     const file=e.target.files?.[0];if(!file) return
     setUpAvatar(true)
     try{
-      const url=await upload(file,'avatars',`${user.id}/avatar.${file.name.split('.').pop()}`)
-      await sb.from('users').update({avatar_url:url}).eq('id',user.id)
-      setUser((u:any)=>({...u,avatar_url:url}))
+      const ext=file.name.split('.').pop()
+      const path=`${user.id}/avatar_${Date.now()}.${ext}`
+      const url=await upload(file,'avatars',path)
+      const urlWithCache=`${url}?t=${Date.now()}`
+      await sb.from('users').update({avatar_url:urlWithCache}).eq('id',user.id)
+      setUser((u:any)=>({...u,avatar_url:urlWithCache}))
       addToast('Foto atualizada!','success')
     }catch(err:any){addToast('Erro no upload. Crie o bucket "avatars" como público no Supabase Storage.','error')}
     setUpAvatar(false)
