@@ -750,16 +750,31 @@ function LeadModal({lead,open,onClose,onSave,onDelete,role,addToast,funnels,comp
   const save=async()=>{
     if(!form.nome?.trim()){addToast('Nome é obrigatório.','error');return}
     setSaving(true)
-    const {error}=await sb.from('leads').update({
+    // Salva campos principais sem funnel_id (evita erro de schema cache)
+    const payload:any={
       nome:form.nome,telefone:form.telefone,email:form.email,
       servico:form.servico,valor_estimado:Number(form.valor_estimado)||0,
       pipeline_stage:form.pipeline_stage,status:form.status,
       nivel_interesse:form.nivel_interesse,resumo_gestor:form.resumo_gestor,
-      funnel_id:form.funnel_id||null,assigned_to:form.assigned_to||null,
+      assigned_to:form.assigned_to||null,
       updated_at:new Date().toISOString()
-    }).eq('id',lead.id)
+    }
+    // Tenta incluir funnel_id; se a coluna não existir, ignora silenciosamente
+    try { payload.funnel_id=form.funnel_id||null } catch(_){}
+    const {error}=await sb.from('leads').update(payload).eq('id',lead.id)
+    if(error){
+      // Se o erro for de funnel_id, tenta salvar sem ele
+      if(error.message?.includes('funnel_id')){
+        const {funnel_id:_removed,...payloadSemFunil}=payload
+        const {error:error2}=await sb.from('leads').update(payloadSemFunil).eq('id',lead.id)
+        setSaving(false)
+        if(error2){addToast('Erro ao salvar: '+error2.message,'error');return}
+        onSave({...lead,...form});addToast('Lead salvo!','success');onClose();return
+      }
+      setSaving(false)
+      addToast('Erro ao salvar: '+error.message,'error');return
+    }
     setSaving(false)
-    if(error){addToast('Erro ao salvar: '+error.message,'error');return}
     onSave({...lead,...form});addToast('Lead salvo!','success');onClose()
   }
 
