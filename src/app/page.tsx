@@ -1112,13 +1112,17 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,dark}:any){
 // ══════════════════════════════════════════════════════════════════
 // CALENDAR
 // ══════════════════════════════════════════════════════════════════
-function CalendarView({company,addToast,user,dark}:any){
+function CalendarView({company,addToast,user,leads,dark}:any){
   const [meetings,setMeetings]=useState<any[]>([])
   const [date,setDate]=useState(new Date())
   const [showNew,setShowNew]=useState(false)
   const [sel,setSel]=useState<any>(null)
-  const [form,setForm]=useState<any>({event_type:'reuniao',status:'pendente'})
+  const [delConfirm,setDelConfirm]=useState(false)
+  const [form,setForm]=useState<any>({event_type:'reuniao',status:'pendente',date:'',time:'',lead_id:''})
+  const [creating,setCreating]=useState(false)
   const [loading,setLoading]=useState(true)
+  const [leadSearch,setLeadSearch]=useState('')
+  const [showLeadDrop,setShowLeadDrop]=useState(false)
 
   useEffect(()=>{load()},[])
   const load=async()=>{
@@ -1127,58 +1131,130 @@ function CalendarView({company,addToast,user,dark}:any){
     if(data) setMeetings(data);setLoading(false)
   }
 
-  const y=date.getFullYear(),m=date.getMonth()
+  const y=date.getFullYear(),mo=date.getMonth()
   const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-  const DAYS=['D','S','T','Q','Q','S','S']
-  const fd=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate()
+  const DAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+  const fd=new Date(y,mo,1).getDay(),dim=new Date(y,mo+1,0).getDate()
   const cells=[...Array(fd).fill(null),...Array.from({length:dim},(_,i)=>i+1)]
   while(cells.length%7!==0) cells.push(null)
   const weeks=Array.from({length:cells.length/7},(_,i)=>cells.slice(i*7,(i+1)*7))
   const today=new Date()
-  const getMeetings=(day:number)=>{const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;return meetings.filter(mt=>mt.start_at?.startsWith(ds))}
+  const getMeetings=(day:number)=>{
+    const ds=`${y}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+    return meetings.filter(mt=>mt.start_at?.startsWith(ds))
+  }
+
+  const openNew=(day?:number)=>{
+    const dateStr=day
+      ?`${y}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+      :new Date().toISOString().split('T')[0]
+    setForm({event_type:'reuniao',status:'pendente',date:dateStr,time:'09:00',lead_id:''})
+    setLeadSearch('');setShowLeadDrop(false)
+    setShowNew(true)
+  }
 
   const create=async()=>{
     if(!form.title?.trim()){addToast('Título obrigatório.','error');return}
-    const {data}=await sb.from('meetings').insert({company_id:company.id,...form,created_by:user.id}).select().single()
-    if(data){setMeetings(ms=>[...ms,data]);setForm({event_type:'reuniao',status:'pendente'});setShowNew(false);addToast('Evento criado!','success')}
+    if(!form.date){addToast('Selecione a data.','error');return}
+    setCreating(true)
+    const start_at=form.time?`${form.date}T${form.time}:00`:`${form.date}T09:00:00`
+    const lead=form.lead_id?leads?.find((l:any)=>l.id===form.lead_id):null
+    const {data,error}=await sb.from('meetings').insert({
+      company_id:company.id,
+      title:form.title.trim(),
+      event_type:form.event_type,
+      status:form.status,
+      start_at,
+      description:form.description||null,
+      lead_id:form.lead_id||null,
+      lead_name:lead?.nome||null,
+      created_by:user.id
+    }).select().single()
+    setCreating(false)
+    if(error){addToast('Erro ao criar: '+error.message,'error');return}
+    if(data) setMeetings(ms=>[...ms,data])
+    setShowNew(false);addToast('Evento criado! 📅','success')
+  }
+
+  const deleteMeeting=async()=>{
+    if(!sel) return
+    await sb.from('meetings').delete().eq('id',sel.id)
+    setMeetings(ms=>ms.filter(m=>m.id!==sel.id))
+    setSel(null);setDelConfirm(false);addToast('Evento apagado.','success')
   }
 
   const updateStatus=async(id:string,status:string)=>{
     await sb.from('meetings').update({status,updated_at:new Date().toISOString()}).eq('id',id)
-    setMeetings(ms=>ms.map(mt=>mt.id===id?{...mt,status}:mt));setSel(null)
-    addToast(status==='confirmado'?'Confirmado!':'Cancelado.',status==='confirmado'?'success':'error')
+    setMeetings(ms=>ms.map(mt=>mt.id===id?{...mt,status}:mt))
+    setSel((s:any)=>s?{...s,status}:s)
+    addToast(status==='confirmado'?'Confirmado! ✅':'Cancelado.','success')
   }
 
-  const TC:any={reuniao:dark?'bg-violet-500/20 text-violet-300 border-violet-500/30':'bg-violet-100 text-violet-700 border-violet-300',visita:dark?'bg-blue-500/20 text-blue-300 border-blue-500/30':'bg-blue-100 text-blue-700 border-blue-300',instalacao:dark?'bg-emerald-500/20 text-emerald-300 border-emerald-500/30':'bg-emerald-100 text-emerald-700 border-emerald-300'}
+  const TC:any={
+    reuniao:dark?'bg-violet-500/20 text-violet-300 border-violet-500/30':'bg-violet-100 text-violet-700 border-violet-300',
+    visita:dark?'bg-blue-500/20 text-blue-300 border-blue-500/30':'bg-blue-100 text-blue-700 border-blue-300',
+    instalacao:dark?'bg-emerald-500/20 text-emerald-300 border-emerald-500/30':'bg-emerald-100 text-emerald-700 border-emerald-300'
+  }
+  const TCdot:any={reuniao:'#A78BFA',visita:'#60A5FA',instalacao:'#34D399'}
   const TL:any={reuniao:'Reunião',visita:'Visita',instalacao:'Instalação'}
   const SC:any={confirmado:dark?'text-emerald-400':'text-emerald-600',pendente:dark?'text-amber-400':'text-amber-600',cancelado:dark?'text-red-400':'text-red-600'}
+  const SB:any={confirmado:'bg-emerald-500/15 border-emerald-500/30',pendente:'bg-amber-500/15 border-amber-500/30',cancelado:'bg-red-500/15 border-red-500/30'}
+
+  const filteredLeads=(leads||[]).filter((l:any)=>
+    !leadSearch||l.nome?.toLowerCase().includes(leadSearch.toLowerCase())||l.servico?.toLowerCase().includes(leadSearch.toLowerCase())
+  ).slice(0,6)
+
+  const selLead=sel?.lead_id?leads?.find((l:any)=>l.id===sel.lead_id):null
+  const upcoming=[...meetings]
+    .filter(m=>new Date(m.start_at)>=new Date(today.toDateString()))
+    .sort((a,b)=>new Date(a.start_at).getTime()-new Date(b.start_at).getTime())
+    .slice(0,6)
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
-      <Header dark={dark} title="Calendário" subtitle="Agendamentos" actions={
-        <button onClick={()=>setShowNew(true)} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-semibold transition-all"><Plus size={13}/>Evento</button>
+      <Header dark={dark} title="Calendário" subtitle={`${meetings.length} evento${meetings.length!==1?'s':''}`} actions={
+        <button onClick={()=>openNew()} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-semibold transition-all shadow-md shadow-emerald-500/20">
+          <Plus size={13}/>Agendar
+        </button>
       }/>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+        {/* Calendar grid */}
         <div className={cx('rounded-2xl border overflow-hidden',T.card(dark))}>
-          <div className={cx('flex items-center justify-between p-4 border-b',dark?'border-white/[0.06]':'border-slate-200')}>
-            <button onClick={()=>setDate(new Date(y,m-1))} className={cx('w-9 h-9 rounded-lg flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-600')}><ChevronLeft size={16}/></button>
-            <p className={cx('text-sm font-semibold',T.text(dark))}>{MONTHS[m]} {y}</p>
-            <button onClick={()=>setDate(new Date(y,m+1))} className={cx('w-9 h-9 rounded-lg flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-600')}><ChevronRight size={16}/></button>
+          <div className={cx('flex items-center justify-between px-4 py-3 border-b',dark?'border-white/[0.06]':'border-slate-200')}>
+            <button onClick={()=>setDate(new Date(y,mo-1))} className={cx('w-8 h-8 rounded-lg flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-600')}><ChevronLeft size={15}/></button>
+            <p className={cx('text-sm font-semibold',T.text(dark))}>{MONTHS[mo]} {y}</p>
+            <button onClick={()=>setDate(new Date(y,mo+1))} className={cx('w-8 h-8 rounded-lg flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-600')}><ChevronRight size={15}/></button>
           </div>
           <div className={cx('grid grid-cols-7 border-b',dark?'border-white/[0.05]':'border-slate-200')}>
-            {DAYS.map((d,i)=><div key={i} className={cx('py-2 text-center text-[10px] font-medium',T.muted(dark))}>{d}</div>)}
+            {DAYS.map((d,i)=><div key={i} className={cx('py-2 text-center text-[10px] font-semibold',T.muted(dark))}>{d}</div>)}
           </div>
           {weeks.map((week,wi)=>(
             <div key={wi} className={cx('grid grid-cols-7 border-b last:border-0',dark?'border-white/[0.04]':'border-slate-100')}>
               {week.map((day:any,di:number)=>{
                 const dm=day?getMeetings(day):[]
-                const isToday=day&&today.getDate()===day&&today.getMonth()===m&&today.getFullYear()===y
+                const isToday=day&&today.getDate()===day&&today.getMonth()===mo&&today.getFullYear()===y
+                const isPast=day&&new Date(y,mo,day)<new Date(today.toDateString())
                 return (
-                  <div key={di} className={cx('min-h-[52px] p-1 border-r last:border-0',dark?'border-white/[0.04]':'border-slate-100',!day&&'opacity-0')}>
+                  <div key={di}
+                    onClick={()=>day&&openNew(day)}
+                    className={cx('min-h-[58px] p-1 border-r last:border-0 transition-colors',
+                      dark?'border-white/[0.04]':'border-slate-100',
+                      !day?'opacity-0 pointer-events-none':'cursor-pointer',
+                      day&&!isPast&&(dark?'hover:bg-white/[0.03]':'hover:bg-slate-50'),
+                      isPast&&(dark?'opacity-40':'opacity-50')
+                    )}>
                     {day&&<>
-                      <span className={cx('text-[11px] font-medium w-5 h-5 flex items-center justify-center rounded-full mb-0.5',isToday?'bg-emerald-500 text-white':T.muted(dark))}>{day}</span>
-                      {dm.slice(0,2).map((mt:any)=><button key={mt.id} onClick={()=>setSel(mt)} className={cx('w-full text-left text-[8px] font-medium px-1 py-0.5 rounded border truncate mb-0.5',TC[mt.event_type])}>{mt.title}</button>)}
-                      {dm.length>2&&<p className={cx('text-[8px] px-1',T.muted(dark))}>+{dm.length-2}</p>}
+                      <span className={cx('text-[11px] font-semibold w-5 h-5 flex items-center justify-center rounded-full mb-0.5 mx-auto',
+                        isToday?'bg-emerald-500 text-white':T.muted(dark))}>{day}</span>
+                      {dm.slice(0,2).map((mt:any)=>(
+                        <button key={mt.id} onClick={e=>{e.stopPropagation();setSel(mt)}}
+                          className={cx('w-full text-left text-[8px] font-semibold px-1.5 py-0.5 rounded-md border truncate mb-0.5 flex items-center gap-1',TC[mt.event_type])}>
+                          <div className="w-1 h-1 rounded-full shrink-0" style={{background:TCdot[mt.event_type]}}/>
+                          {mt.title}
+                        </button>
+                      ))}
+                      {dm.length>2&&<p className={cx('text-[8px] px-1 font-medium',T.muted(dark))}>+{dm.length-2} mais</p>}
                     </>}
                   </div>
                 )
@@ -1186,57 +1262,186 @@ function CalendarView({company,addToast,user,dark}:any){
             </div>
           ))}
         </div>
+
+        {/* Próximos eventos */}
         <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
           <p className={cx('text-xs font-semibold mb-3',T.text(dark))}>Próximos Eventos</p>
-          <div className="space-y-2">
-            {[...meetings].sort((a,b)=>new Date(a.start_at).getTime()-new Date(b.start_at).getTime()).slice(0,5).map(mt=>(
-              <button key={mt.id} onClick={()=>setSel(mt)} className={cx('w-full text-left p-3 rounded-xl border transition-all active:scale-95',T.card(dark))}>
-                <div className="flex items-start gap-2.5">
-                  <div className="w-1 rounded-full mt-1 shrink-0 self-stretch" style={{background:mt.event_type==='visita'?'#60A5FA':mt.event_type==='reuniao'?'#A78BFA':'#34D399'}}/>
-                  <div className="flex-1 min-w-0">
-                    <p className={cx('text-xs font-medium truncate',T.text(dark))}>{mt.title}</p>
-                    <p className={cx('text-[10px]',T.muted(dark))}>{TL[mt.event_type]} · {mt.start_at?.split('T')[0]}</p>
-                    <span className={cx('text-[10px] font-medium',SC[mt.status])}>{mt.status}</span>
-                  </div>
-                </div>
-              </button>
-            ))}
-            {meetings.length===0&&<p className={cx('text-xs text-center py-4',T.muted(dark))}>Sem eventos</p>}
-          </div>
+          {loading?<Sk className="h-24 rounded-xl"/>:(
+            <div className="space-y-2">
+              {upcoming.map(mt=>{
+                const leadNm=mt.lead_name||(mt.lead_id?leads?.find((l:any)=>l.id===mt.lead_id)?.nome:null)
+                return (
+                  <button key={mt.id} onClick={()=>setSel(mt)} className={cx('w-full text-left p-3 rounded-xl border transition-all active:scale-95',T.card(dark))}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-2 self-stretch rounded-full shrink-0" style={{background:TCdot[mt.event_type]}}/>
+                      <div className="flex-1 min-w-0">
+                        <p className={cx('text-xs font-semibold truncate',T.text(dark))}>{mt.title}</p>
+                        <p className={cx('text-[10px]',T.muted(dark))}>
+                          {TL[mt.event_type]} · {mt.start_at?.replace('T',' ').slice(0,16)}
+                          {leadNm&&<span className="text-emerald-400"> · {leadNm}</span>}
+                        </p>
+                      </div>
+                      <span className={cx('text-[9px] font-semibold px-2 py-0.5 rounded-full border shrink-0',SC[mt.status],SB[mt.status])}>{mt.status}</span>
+                    </div>
+                  </button>
+                )
+              })}
+              {upcoming.length===0&&<p className={cx('text-xs text-center py-4',T.muted(dark))}>Nenhum evento próximo 🎉</p>}
+            </div>
+          )}
         </div>
       </div>
-      <Modal dark={dark} open={showNew} onClose={()=>setShowNew(false)} title="Novo Evento" size="md">
+
+      {/* Modal Criar Evento */}
+      <Modal dark={dark} open={showNew} onClose={()=>setShowNew(false)} title="Agendar Evento" size="md">
         <div className="space-y-3">
-          <Field dark={dark} label="Título" value={form.title} onChange={(v:string)=>setForm((f:any)=>({...f,title:v}))} required/>
-          <div className="grid grid-cols-2 gap-3">
-            <Sel dark={dark} label="Tipo" value={form.event_type} onChange={(v:string)=>setForm((f:any)=>({...f,event_type:v}))} options={[{value:'reuniao',label:'Reunião'},{value:'visita',label:'Visita'},{value:'instalacao',label:'Instalação'}]}/>
-            <Sel dark={dark} label="Status" value={form.status} onChange={(v:string)=>setForm((f:any)=>({...f,status:v}))} options={[{value:'pendente',label:'Pendente'},{value:'confirmado',label:'Confirmado'},{value:'cancelado',label:'Cancelado'}]}/>
+          {/* Tipo — botões visuais */}
+          <div>
+            <label className={cx('text-xs font-medium mb-2 block',T.sub(dark))}>Tipo</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[{v:'reuniao',l:'Reunião',color:'violet'},{v:'visita',l:'Visita',color:'blue'},{v:'instalacao',l:'Instalação',color:'emerald'}].map(({v,l,color})=>(
+                <button key={v} onClick={()=>setForm((f:any)=>({...f,event_type:v}))}
+                  className={cx('py-2.5 rounded-xl border text-xs font-semibold transition-all active:scale-95',
+                    form.event_type===v
+                      ?color==='violet'?'bg-violet-500/20 border-violet-500/50 text-violet-400'
+                        :color==='blue'?'bg-blue-500/20 border-blue-500/50 text-blue-400'
+                        :'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                      :dark?'border-white/10 text-slate-500 hover:border-white/20':'border-slate-300 text-slate-500 hover:border-slate-400'
+                  )}>{l}</button>
+              ))}
+            </div>
           </div>
+
+          <Field dark={dark} label="Título do evento" value={form.title} onChange={(v:string)=>setForm((f:any)=>({...f,title:v}))} required placeholder="Ex: Reunião com cliente"/>
+
           <div className="grid grid-cols-2 gap-3">
-            <Field dark={dark} label="Início" value={form.start_at} onChange={(v:string)=>setForm((f:any)=>({...f,start_at:v}))} type="datetime-local"/>
-            <Field dark={dark} label="Fim" value={form.end_at} onChange={(v:string)=>setForm((f:any)=>({...f,end_at:v}))} type="datetime-local"/>
+            <Field dark={dark} label="Data" value={form.date} onChange={(v:string)=>setForm((f:any)=>({...f,date:v}))} type="date" required icon={Calendar}/>
+            <Field dark={dark} label="Horário" value={form.time} onChange={(v:string)=>setForm((f:any)=>({...f,time:v}))} type="time" icon={Bell}/>
           </div>
-          <Textarea dark={dark} label="Descrição" value={form.description} onChange={(v:string)=>setForm((f:any)=>({...f,description:v}))} placeholder="Detalhes..."/>
-          <div className="flex gap-2 justify-end">
-            <button onClick={()=>setShowNew(false)} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-300 text-slate-600')}>Cancelar</button>
-            <button onClick={create} className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-medium transition-all">Criar</button>
+
+          {/* Status — botões */}
+          <div>
+            <label className={cx('text-xs font-medium mb-2 block',T.sub(dark))}>Status</label>
+            <div className="flex gap-2">
+              {[{v:'pendente',l:'Pendente'},{v:'confirmado',l:'Confirmado'},{v:'cancelado',l:'Cancelado'}].map(({v,l})=>(
+                <button key={v} onClick={()=>setForm((f:any)=>({...f,status:v}))}
+                  className={cx('flex-1 py-2 rounded-xl border text-xs font-semibold transition-all',
+                    form.status===v
+                      ?v==='confirmado'?'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                        :v==='cancelado'?'bg-red-500/20 border-red-500/40 text-red-400'
+                        :'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                      :dark?'border-white/10 text-slate-500':'border-slate-300 text-slate-500'
+                  )}>{l}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Vincular lead */}
+          <div className="relative">
+            <label className={cx('text-xs font-medium mb-1.5 block',T.sub(dark))}>Vincular lead <span className={T.muted(dark)}>(opcional)</span></label>
+            {form.lead_id?(
+              <div className={cx('flex items-center gap-2 px-3 py-2.5 rounded-lg border',T.input(dark))}>
+                <Av name={leads?.find((l:any)=>l.id===form.lead_id)?.nome||'?'} size="xs"/>
+                <span className={cx('flex-1 text-sm',T.text(dark))}>{leads?.find((l:any)=>l.id===form.lead_id)?.nome}</span>
+                <button onClick={()=>setForm((f:any)=>({...f,lead_id:''}))} className="text-red-400 hover:text-red-300"><X size={13}/></button>
+              </div>
+            ):(
+              <div className="relative">
+                <Search size={13} className={cx('absolute left-3 top-1/2 -translate-y-1/2',T.muted(dark))}/>
+                <input value={leadSearch} onChange={e=>{setLeadSearch(e.target.value);setShowLeadDrop(true)}}
+                  onFocus={()=>setShowLeadDrop(true)}
+                  placeholder="Buscar lead..."
+                  className={cx('w-full pl-8 pr-3 py-2.5 rounded-lg border text-sm focus:outline-none focus:border-emerald-500/50',T.input(dark))}/>
+                {showLeadDrop&&filteredLeads.length>0&&(
+                  <div className={cx('absolute top-full left-0 right-0 mt-1 rounded-xl border shadow-xl z-50 overflow-hidden',T.modal(dark))}>
+                    {filteredLeads.map((l:any)=>(
+                      <button key={l.id} onClick={()=>{setForm((f:any)=>({...f,lead_id:l.id}));setLeadSearch('');setShowLeadDrop(false)}}
+                        className={cx('w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-colors',dark?'hover:bg-white/5':'hover:bg-slate-50')}>
+                        <Av name={l.nome} size="xs"/>
+                        <div className="flex-1 min-w-0">
+                          <p className={cx('text-xs font-medium truncate',T.text(dark))}>{l.nome}</p>
+                          <p className={cx('text-[10px]',T.muted(dark))}>{l.servico||l.pipeline_stage}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <Textarea dark={dark} label="Observação" value={form.description} onChange={(v:string)=>setForm((f:any)=>({...f,description:v}))} placeholder="Detalhes do evento..." rows={2}/>
+
+          <div className="flex gap-2 justify-end pt-1">
+            <button onClick={()=>setShowNew(false)} className={cx('px-4 py-2.5 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-300 text-slate-600')}>Cancelar</button>
+            <button onClick={create} disabled={creating} className="px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-semibold disabled:opacity-60 transition-all">
+              {creating?'Agendando...':'Agendar ✓'}
+            </button>
           </div>
         </div>
       </Modal>
-      <Modal dark={dark} open={!!sel} onClose={()=>setSel(null)} title="Detalhes do Evento" size="sm">
-        {sel&&<div className="space-y-3">
-          <div className={cx('px-2.5 py-1.5 rounded-xl border text-xs font-medium inline-block',TC[sel.event_type])}>{TL[sel.event_type]}</div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs"><span className={T.muted(dark)}>Título</span><span className={cx('font-medium',T.text(dark))}>{sel.title}</span></div>
-            <div className="flex justify-between text-xs"><span className={T.muted(dark)}>Início</span><span className={T.text(dark)}>{sel.start_at?.replace('T',' ').slice(0,16)}</span></div>
-            <div className="flex justify-between text-xs"><span className={T.muted(dark)}>Status</span><span className={cx('font-medium',SC[sel.status])}>{sel.status}</span></div>
-            {sel.description&&<p className={cx('text-xs pt-2 border-t',dark?'border-white/[0.06] text-slate-400':'border-slate-200 text-slate-600')}>{sel.description}</p>}
+
+      {/* Modal Detalhes */}
+      <Modal dark={dark} open={!!sel} onClose={()=>{setSel(null);setDelConfirm(false)}} title="Detalhes do Evento" size="sm">
+        {sel&&(
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className={cx('px-2.5 py-1 rounded-lg border text-xs font-semibold',TC[sel.event_type])}>{TL[sel.event_type]}</div>
+              <span className={cx('px-2.5 py-1 rounded-lg border text-xs font-semibold',SC[sel.status],SB[sel.status])}>{sel.status}</span>
+            </div>
+
+            <div className="space-y-2.5">
+              <div>
+                <p className={cx('text-base font-bold',T.text(dark))}>{sel.title}</p>
+                <p className={cx('text-xs mt-0.5',T.muted(dark))}>{sel.start_at?.replace('T',' ').slice(0,16)}</p>
+              </div>
+
+              {selLead&&(
+                <div className={cx('flex items-center gap-2.5 p-2.5 rounded-xl border',dark?'bg-emerald-500/5 border-emerald-500/20':'bg-emerald-50 border-emerald-200')}>
+                  <Av name={selLead.nome} size="xs"/>
+                  <div className="min-w-0">
+                    <p className={cx('text-xs font-semibold',dark?'text-emerald-300':'text-emerald-700')}>{selLead.nome}</p>
+                    <p className={cx('text-[10px]',T.muted(dark))}>{selLead.servico||selLead.pipeline_stage}</p>
+                  </div>
+                </div>
+              )}
+
+              {sel.description&&(
+                <p className={cx('text-xs leading-relaxed p-3 rounded-xl border',dark?'bg-white/[0.02] border-white/[0.06] text-slate-400':'bg-slate-50 border-slate-200 text-slate-600')}>{sel.description}</p>
+              )}
+            </div>
+
+            {/* Status actions */}
+            {sel.status!=='confirmado'&&(
+              <button onClick={()=>updateStatus(sel.id,'confirmado')}
+                className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-semibold transition-all">
+                ✓ Confirmar evento
+              </button>
+            )}
+            {sel.status!=='cancelado'&&(
+              <button onClick={()=>updateStatus(sel.id,'cancelado')}
+                className={cx('w-full py-2.5 rounded-xl border text-sm font-medium transition-all active:scale-95',dark?'border-slate-700 text-slate-400 hover:bg-white/5':'border-slate-300 text-slate-600 hover:bg-slate-50')}>
+                Marcar como cancelado
+              </button>
+            )}
+
+            {/* Delete */}
+            {!delConfirm?(
+              <button onClick={()=>setDelConfirm(true)}
+                className="w-full py-2.5 rounded-xl border border-red-500/20 text-red-400 text-sm hover:bg-red-500/10 active:scale-95 transition-all flex items-center justify-center gap-2">
+                <Trash2 size={13}/>Apagar evento
+              </button>
+            ):(
+              <div className={cx('p-3 rounded-xl border',dark?'border-red-500/20 bg-red-500/5':'border-red-200 bg-red-50')}>
+                <p className={cx('text-xs mb-3 text-center',dark?'text-red-300':'text-red-600')}>Tem certeza? Esta ação não pode ser desfeita.</p>
+                <div className="flex gap-2">
+                  <button onClick={()=>setDelConfirm(false)} className={cx('flex-1 py-2 rounded-lg border text-xs',dark?'border-white/10 text-slate-400':'border-slate-300 text-slate-600')}>Cancelar</button>
+                  <button onClick={deleteMeeting} className="flex-1 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold active:scale-95 transition-all">Apagar</button>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex gap-2">
-            <button onClick={()=>updateStatus(sel.id,'cancelado')} className="flex-1 py-2.5 rounded-lg border border-red-500/30 text-red-400 text-sm hover:bg-red-500/10 active:scale-95 transition-all">Cancelar</button>
-            <button onClick={()=>updateStatus(sel.id,'confirmado')} className="flex-1 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm transition-all">Confirmar</button>
-          </div>
-        </div>}
+        )}
       </Modal>
     </div>
   )
@@ -1895,7 +2100,7 @@ export default function App(){
     dashboard:     <Dashboard {...p}/>,
     pipeline:      <Pipeline {...p}/>,
     leads:         <LeadsTable {...p}/>,
-    calendar:      <CalendarView {...p}/>,
+    calendar:      <CalendarView company={company} user={user} addToast={addToast} leads={leads} dark={dark}/>,
     colaboradores: <Colaboradores company={company} user={user} addToast={addToast} dark={dark}/>,
     settings:      <SettingsPage user={user} company={company} dark={dark} setDark={setDark} onLogout={logout} addToast={addToast} setUser={setUser} setCompany={setCompany}/>,
     suporte:       <Suporte company={company} user={user} addToast={addToast} dark={dark}/>,
