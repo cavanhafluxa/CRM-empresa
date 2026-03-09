@@ -216,13 +216,16 @@ function Login({onLogin}:any){
     try{
       const {data:co}=await sb.from('companies').select('*').eq('company_slug',forgotSlug.trim().toLowerCase()).single()
       const {data:usr}=co?await sb.from('users').select('*').eq('company_id',co.id).eq('username',forgotUser.trim().toLowerCase()).single():{data:null}
-      await fetch(N8N,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      await fetch('/api/webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         type:'esqueci_senha',empresa:forgotSlug.trim(),usuario:forgotUser.trim(),
         empresa_nome:co?.company_name||forgotSlug,usuario_nome:usr?.full_name||forgotUser,
         timestamp:new Date().toISOString()
       })})
       setForgotSent(true)
-    }catch{}
+    }catch(e){
+      console.error('Webhook erro:',e)
+      setForgotSent(true)
+    }
     setSending(false)
   }
 
@@ -293,8 +296,8 @@ function Login({onLogin}:any){
               className="w-full py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold shadow-lg shadow-emerald-500/20 disabled:opacity-60 active:scale-95 transition-all">
               {loading?<span className="flex items-center justify-center gap-2"><RefreshCw size={13} className="animate-spin"/>Entrando...</span>:'Entrar'}
             </button>
-            <button onClick={()=>setForgot(true)} className="w-full text-slate-500 text-xs hover:text-slate-300 text-center transition-colors">
-              Esqueci minha senha
+            <button onClick={()=>setForgot(true)} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-white/10 text-slate-400 text-xs hover:text-white hover:border-white/20 transition-all">
+              <Lock size={11}/>Esqueci minha senha
             </button>
           </div>
         </div>
@@ -578,13 +581,29 @@ function HubDashboard({dark,addToast}:any){
 // ══════════════════════════════════════════════════════════════════
 // HUB EMPRESAS (lista)
 // ══════════════════════════════════════════════════════════════════
-function HubEmpresas({dark}:any){
+function HubEmpresas({dark,addToast}:any){
   const [companies,setCompanies]=useState<any[]>([])
   const [loading,setLoading]=useState(true)
+  const [delConfirm,setDelConfirm]=useState<any>(null)
 
   useEffect(()=>{
     sb.from('companies').select('*').order('created_at',{ascending:false}).then(({data})=>{if(data)setCompanies(data);setLoading(false)})
   },[])
+
+  const deleteCompany=async()=>{
+    if(!delConfirm) return
+    // Apagar usuários, leads, funnels, company_auth e empresa
+    await sb.from('users').delete().eq('company_id',delConfirm.id)
+    await sb.from('leads').delete().eq('company_id',delConfirm.id)
+    await sb.from('funnels').delete().eq('company_id',delConfirm.id)
+    await sb.from('meetings').delete().eq('company_id',delConfirm.id)
+    await sb.from('support_tickets').delete().eq('company_id',delConfirm.id)
+    await sb.from('company_auth').delete().eq('company_id',delConfirm.id)
+    const {error}=await sb.from('companies').delete().eq('id',delConfirm.id)
+    if(error){addToast('Erro ao apagar: '+error.message,'error');setDelConfirm(null);return}
+    setCompanies(cs=>cs.filter(c=>c.id!==delConfirm.id))
+    setDelConfirm(null);addToast('Empresa apagada.','success')
+  }
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
@@ -604,12 +623,16 @@ function HubEmpresas({dark}:any){
                   <p className={cx('text-[10px]',T.muted(dark))}>{c.created_at?.split('T')[0]}</p>
                 </div>
                 <span className={cx('text-xs px-2.5 py-1 rounded-full border font-medium shrink-0',c.crm_active?'bg-emerald-500/15 text-emerald-600 border-emerald-400/30':'bg-red-500/15 text-red-500 border-red-400/30')}>{c.crm_active?'Ativa':'Inativa'}</span>
+                {c.company_slug!==FLUXA_SLUG&&(
+                  <button onClick={()=>setDelConfirm(c)} className={cx('w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',dark?'hover:bg-red-500/10 text-slate-500 hover:text-red-400':'hover:bg-red-50 text-slate-400 hover:text-red-500')}><Trash2 size={14}/></button>
+                )}
               </div>
             ))}
             {companies.length===0&&<p className={cx('text-center text-sm py-8',T.muted(dark))}>Nenhuma empresa cadastrada.</p>}
           </div>
         )}
       </div>
+      <Confirm dark={dark} open={!!delConfirm} onClose={()=>setDelConfirm(null)} onOk={deleteCompany} title="Apagar Empresa" msg={`Apagar "${delConfirm?.company_name}"? Todos os dados (leads, usuários, etc) serão permanentemente excluídos.`}/>
     </div>
   )
 }
@@ -1412,21 +1435,6 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
   }
 
   const cardCls=cx('p-4 rounded-2xl border',T.card(dark))
-  const PwField=({label,fk}:any)=>(
-    <div className="flex flex-col gap-1.5">
-      <label className={cx('text-xs font-medium',T.sub(dark))}>{label}</label>
-      <div className="relative">
-        <Lock size={13} className={cx('absolute left-3 top-1/2 -translate-y-1/2',T.muted(dark))}/>
-        <input type={showPw[fk as keyof typeof showPw]?'text':'password'} value={pwForm[fk as keyof typeof pwForm]}
-          onChange={e=>setPwForm(f=>({...f,[fk]:e.target.value}))}
-          className={cx('w-full pl-9 pr-9 py-2.5 rounded-lg border text-sm focus:outline-none focus:border-emerald-500/50',T.input(dark))}/>
-        <button type="button" onClick={()=>setShowPw(s=>({...s,[fk]:!s[fk as keyof typeof showPw]}))}
-          className={cx('absolute right-3 top-1/2 -translate-y-1/2',T.muted(dark))}>
-          {showPw[fk as keyof typeof showPw]?<EyeOff size={13}/>:<Eye size={13}/>}
-        </button>
-      </div>
-    </div>
-  )
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -1466,9 +1474,33 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
         <div className={cardCls}>
           <p className={cx('text-xs font-semibold mb-4 flex items-center gap-2',T.text(dark))}><Lock size={13}/>Alterar Senha</p>
           <div className="space-y-3">
-            <PwField label="Senha atual" fk="current"/>
-            <PwField label="Nova senha" fk="novo"/>
-            <PwField label="Confirmar nova senha" fk="confirm"/>
+            <div className="flex flex-col gap-1.5">
+              <label className={cx('text-xs font-medium',T.sub(dark))}>Senha atual</label>
+              <div className="relative">
+                <Lock size={13} className={cx('absolute left-3 top-1/2 -translate-y-1/2',T.muted(dark))}/>
+                <input type={showPw.c?'text':'password'} value={pwForm.current} onChange={e=>setPwForm(f=>({...f,current:e.target.value}))}
+                  className={cx('w-full pl-9 pr-9 py-2.5 rounded-lg border text-sm focus:outline-none focus:border-emerald-500/50',T.input(dark))}/>
+                <button type="button" onClick={()=>setShowPw(s=>({...s,c:!s.c}))} className={cx('absolute right-3 top-1/2 -translate-y-1/2',T.muted(dark))}>{showPw.c?<EyeOff size={13}/>:<Eye size={13}/>}</button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className={cx('text-xs font-medium',T.sub(dark))}>Nova senha</label>
+              <div className="relative">
+                <Lock size={13} className={cx('absolute left-3 top-1/2 -translate-y-1/2',T.muted(dark))}/>
+                <input type={showPw.n?'text':'password'} value={pwForm.novo} onChange={e=>setPwForm(f=>({...f,novo:e.target.value}))}
+                  className={cx('w-full pl-9 pr-9 py-2.5 rounded-lg border text-sm focus:outline-none focus:border-emerald-500/50',T.input(dark))}/>
+                <button type="button" onClick={()=>setShowPw(s=>({...s,n:!s.n}))} className={cx('absolute right-3 top-1/2 -translate-y-1/2',T.muted(dark))}>{showPw.n?<EyeOff size={13}/>:<Eye size={13}/>}</button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className={cx('text-xs font-medium',T.sub(dark))}>Confirmar nova senha</label>
+              <div className="relative">
+                <Lock size={13} className={cx('absolute left-3 top-1/2 -translate-y-1/2',T.muted(dark))}/>
+                <input type={showPw.cf?'text':'password'} value={pwForm.confirm} onChange={e=>setPwForm(f=>({...f,confirm:e.target.value}))}
+                  className={cx('w-full pl-9 pr-9 py-2.5 rounded-lg border text-sm focus:outline-none focus:border-emerald-500/50',T.input(dark))}/>
+                <button type="button" onClick={()=>setShowPw(s=>({...s,cf:!s.cf}))} className={cx('absolute right-3 top-1/2 -translate-y-1/2',T.muted(dark))}>{showPw.cf?<EyeOff size={13}/>:<Eye size={13}/>}</button>
+              </div>
+            </div>
           </div>
           <button onClick={changePassword} disabled={savingPw}
             className="mt-4 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-medium disabled:opacity-60 transition-all">
@@ -1546,7 +1578,7 @@ function Suporte({company,user,addToast,dark}:any){
     if(!msg.trim()){addToast('Digite uma mensagem.','error');return}
     setSending(true)
     const {data}=await sb.from('support_tickets').insert({company_id:company.id,user_id:user.id,user_name:user.display_name||user.full_name,message:msg.trim(),status:'aberto'}).select().single()
-    try{await fetch(N8N,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'suporte',empresa:company.company_name,empresa_slug:company.company_slug,usuario:user.display_name||user.full_name,cargo:user.role,mensagem:msg.trim(),timestamp:new Date().toISOString()})})}catch{}
+    try{await fetch('/api/webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'suporte',empresa:company.company_name,empresa_slug:company.company_slug,usuario:user.display_name||user.full_name,cargo:user.role,mensagem:msg.trim(),timestamp:new Date().toISOString()})})}catch{}
     if(data) setTickets(t=>[data,...t])
     setMsg('');setSending(false);addToast('Mensagem enviada!','success')
   }
@@ -1592,13 +1624,47 @@ function Suporte({company,user,addToast,dark}:any){
 // ══════════════════════════════════════════════════════════════════
 export default function App(){
   const [session,setSession]=useState<any>(null)
+  const [sessionLoaded,setSessionLoaded]=useState(false)
   const [tab,setTab]=useState('dashboard')
   const [dark,setDark]=useState(true)
   const [sideOpen,setSideOpen]=useState(false)
   const [leads,setLeads]=useState<any[]>([])
   const [funnels,setFunnels]=useState<any[]>([])
   const [users,setUsers]=useState<any[]>([])
+  const [logoutConfirm,setLogoutConfirm]=useState(false)
   const {toasts,add:addToast,rm:rmToast}=useToast()
+
+  // Restore session from localStorage on mount
+  useEffect(()=>{
+    try{
+      const saved=localStorage.getItem('fluxa_session')
+      const savedTab=localStorage.getItem('fluxa_tab')
+      const savedDark=localStorage.getItem('fluxa_dark')
+      if(savedDark!==null) setDark(savedDark==='true')
+      if(saved){
+        const s=JSON.parse(saved)
+        setSession(s)
+        if(savedTab) setTab(savedTab)
+        loadData(s.company.id)
+      }
+    }catch{}
+    setSessionLoaded(true)
+  },[])
+
+  // Save session to localStorage on change
+  useEffect(()=>{
+    if(!sessionLoaded) return
+    if(session) localStorage.setItem('fluxa_session',JSON.stringify(session))
+    else localStorage.removeItem('fluxa_session')
+  },[session,sessionLoaded])
+
+  useEffect(()=>{
+    if(sessionLoaded) localStorage.setItem('fluxa_tab',tab)
+  },[tab,sessionLoaded])
+
+  useEffect(()=>{
+    if(sessionLoaded) localStorage.setItem('fluxa_dark',String(dark))
+  },[dark,sessionLoaded])
 
   const loadData=async(companyId:string)=>{
     const [lr,fr,ur]=await Promise.all([
@@ -1618,10 +1684,16 @@ export default function App(){
     setTab(isHub?'hub_dashboard':'dashboard')
     addToast(`Bem-vindo, ${user.display_name||user.full_name}! 👋`,'success')
   }
-  const logout=()=>{setSession(null);setLeads([]);setFunnels([]);setUsers([]);setTab('dashboard')}
+  const doLogout=()=>{
+    setSession(null);setLeads([]);setFunnels([]);setUsers([]);setTab('dashboard')
+    localStorage.removeItem('fluxa_session');localStorage.removeItem('fluxa_tab')
+    setLogoutConfirm(false)
+  }
+  const logout=()=>setLogoutConfirm(true)
   const setUser=(fn:any)=>setSession((s:any)=>({...s,user:typeof fn==='function'?fn(s.user):fn}))
   const setCompany=(fn:any)=>setSession((s:any)=>({...s,company:typeof fn==='function'?fn(s.company):fn}))
 
+  if(!sessionLoaded) return <div className="min-h-screen bg-[#050812] flex items-center justify-center"><RefreshCw size={20} className="text-emerald-400 animate-spin"/></div>
   if(!session) return <Login onLogin={login}/>
 
   const {company,user}=session
@@ -1650,6 +1722,7 @@ export default function App(){
         {pages[tab]||pages[isHub?'hub_dashboard':'dashboard']}
       </main>
       <Toast toasts={toasts} rm={rmToast}/>
+      <Confirm dark={dark} open={logoutConfirm} onClose={()=>setLogoutConfirm(false)} onOk={doLogout} title="Sair da conta" msg="Tem certeza que deseja sair? Você precisará fazer login novamente."/>
     </div>
   )
 }
