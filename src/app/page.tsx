@@ -418,7 +418,7 @@ function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDa
 // ══════════════════════════════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════════════════════════════
-function Dashboard({leads,company,addToast,dark}:any){
+function Dashboard({leads,company,addToast,dark,onMenu}:any){
   const [loading,setLoading]=useState(true)
   useEffect(()=>{setTimeout(()=>setLoading(false),400)},[])
 
@@ -457,7 +457,7 @@ function Dashboard({leads,company,addToast,dark}:any){
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <Header dark={dark} title="Dashboard" subtitle={company.company_name} actions={
+      <Header dark={dark} onMenu={onMenu} title="Dashboard" subtitle={company.company_name} actions={
         <button onClick={exportCSV} className={cx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs',dark?'border-white/10 text-slate-400 hover:text-white':'border-slate-300 text-slate-600 hover:text-slate-900')}><Download size={12}/>CSV</button>
       }/>
       <div className="p-4 space-y-4">
@@ -536,7 +536,7 @@ function Dashboard({leads,company,addToast,dark}:any){
 // ══════════════════════════════════════════════════════════════════
 // HUB DASHBOARD (somente Flüxa founder)
 // ══════════════════════════════════════════════════════════════════
-function HubDashboard({dark,addToast}:any){
+function HubDashboard({dark,addToast,onMenu}:any){
   const [companies,setCompanies]=useState<any[]>([])
   const [users,setUsers]=useState<any[]>([])
   const [loading,setLoading]=useState(true)
@@ -558,7 +558,7 @@ function HubDashboard({dark,addToast}:any){
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <Header dark={dark} title="Hub Dashboard" subtitle="Visão geral da plataforma"/>
+      <Header dark={dark} onMenu={onMenu} title="Hub Dashboard" subtitle="Visão geral da plataforma"/>
       <div className="p-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
           {[
@@ -599,7 +599,7 @@ function HubDashboard({dark,addToast}:any){
 // ══════════════════════════════════════════════════════════════════
 // HUB EMPRESAS (lista)
 // ══════════════════════════════════════════════════════════════════
-function HubEmpresas({dark,addToast}:any){
+function HubEmpresas({dark,addToast,onMenu}:any){
   const [companies,setCompanies]=useState<any[]>([])
   const [loading,setLoading]=useState(true)
   const [delConfirm,setDelConfirm]=useState<any>(null)
@@ -627,7 +627,7 @@ function HubEmpresas({dark,addToast}:any){
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
-      <Header dark={dark} title="Empresas Cadastradas" subtitle={`${filtered.length} parceiros`}/>
+      <Header dark={dark} onMenu={onMenu} title="Empresas Cadastradas" subtitle={`${filtered.length} parceiros`}/>
       <div className="flex-1 overflow-y-auto p-4">
         {loading?<div className="space-y-2">{[1,2,3].map(i=><Sk key={i} className="h-16 rounded-2xl"/>)}</div>:(
           <div className="space-y-2">
@@ -658,7 +658,7 @@ function HubEmpresas({dark,addToast}:any){
 // ══════════════════════════════════════════════════════════════════
 // HUB CRIAR EMPRESA
 // ══════════════════════════════════════════════════════════════════
-function HubCriarEmpresa({dark,addToast,setTab}:any){
+function HubCriarEmpresa({dark,addToast,setTab,onMenu}:any){
   const [form,setForm]=useState({company_name:'',company_slug:'',gestor_nome:'',gestor_usuario:'',gestor_senha:'',funil_nome:'Funil Geral'})
   const [creating,setCreating]=useState(false)
   const set=(k:string,v:string)=>setForm(f=>({...f,[k]:v}))
@@ -696,7 +696,7 @@ function HubCriarEmpresa({dark,addToast,setTab}:any){
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <Header dark={dark} title="Criar Empresa" subtitle="Cadastrar novo parceiro no hub"/>
+      <Header dark={dark} onMenu={onMenu} title="Criar Empresa" subtitle="Cadastrar novo parceiro no hub"/>
       <div className="p-4 max-w-lg space-y-4">
         <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
           <p className={cx('text-xs font-semibold mb-4 flex items-center gap-2',T.text(dark))}><Building2 size={13}/>Dados da Empresa</p>
@@ -731,7 +731,7 @@ function HubCriarEmpresa({dark,addToast,setTab}:any){
 // ══════════════════════════════════════════════════════════════════
 // LEAD MODAL
 // ══════════════════════════════════════════════════════════════════
-function LeadModal({lead,open,onClose,onSave,onDelete,role,addToast,funnels,companyId,dark=true}:any){
+function LeadModal({lead,open,onClose,onSave,onDelete,role,addToast,funnels,companyId,users,dark=true}:any){
   const [form,setForm]=useState<any>({})
   const [notes,setNotes]=useState<any[]>([])
   const [note,setNote]=useState('')
@@ -755,7 +755,8 @@ function LeadModal({lead,open,onClose,onSave,onDelete,role,addToast,funnels,comp
       servico:form.servico,valor_estimado:Number(form.valor_estimado)||0,
       pipeline_stage:form.pipeline_stage,status:form.status,
       nivel_interesse:form.nivel_interesse,resumo_gestor:form.resumo_gestor,
-      funnel_id:form.funnel_id||null,updated_at:new Date().toISOString()
+      funnel_id:form.funnel_id||null,assigned_to:form.assigned_to||null,
+      updated_at:new Date().toISOString()
     }).eq('id',lead.id)
     setSaving(false)
     if(error){addToast('Erro ao salvar: '+error.message,'error');return}
@@ -791,6 +792,25 @@ function LeadModal({lead,open,onClose,onSave,onDelete,role,addToast,funnels,comp
           <div className="grid grid-cols-2 gap-3">
             <Sel dark={dark} label="Etapa" value={form.pipeline_stage} onChange={(v:string)=>set('pipeline_stage',v)} options={STAGES.map(s=>({value:s,label:s}))}/>
             <Sel dark={dark} label="Status" value={form.status} onChange={(v:string)=>set('status',v)} options={[{value:'ativo',label:'Ativo'},{value:'ganho',label:'Ganho'},{value:'perdido',label:'Perdido'},{value:'inativo',label:'Inativo'}]}/>
+          </div>
+          {/* Responsável */}
+          <div className="flex flex-col gap-1.5">
+            <label className={cx('text-xs font-medium',T.sub(dark))}>Responsável</label>
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={()=>set('assigned_to',null)}
+                className={cx('flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all',
+                  !form.assigned_to?(dark?'bg-white/10 border-white/20 text-white':'bg-slate-200 border-slate-400 text-slate-800'):(dark?'border-white/10 text-slate-500':'border-slate-300 text-slate-400'))}>
+                <User size={11}/>Nenhum
+              </button>
+              {(users||[]).map((u:any)=>(
+                <button key={u.id} onClick={()=>set('assigned_to',u.id)}
+                  className={cx('flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all active:scale-95',
+                    form.assigned_to===u.id?(dark?'bg-emerald-500/20 border-emerald-500/40 text-emerald-300':'bg-emerald-100 border-emerald-400 text-emerald-700'):(dark?'border-white/10 text-slate-400 hover:border-white/20':'border-slate-300 text-slate-500 hover:border-slate-400'))}>
+                  <Av name={u.display_name||u.full_name} size="xs" url={u.avatar_url}/>
+                  {u.display_name||u.full_name}
+                </button>
+              ))}
+            </div>
           </div>
           {funnels?.length>0&&<Sel dark={dark} label="Funil" value={form.funnel_id||''} onChange={(v:string)=>set('funnel_id',v)} options={[{value:'',label:'Sem funil'},...funnels.map((f:any)=>({value:f.id,label:f.name}))]}/>}
           <div className="flex flex-col gap-1.5">
@@ -839,7 +859,7 @@ function LeadModal({lead,open,onClose,onSave,onDelete,role,addToast,funnels,comp
 // ══════════════════════════════════════════════════════════════════
 // PIPELINE
 // ══════════════════════════════════════════════════════════════════
-function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark}:any){
+function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark,onMenu}:any){
   const [selected,setSelected]=useState<any>(null)
   const [showNew,setShowNew]=useState(false)
   const [newLead,setNewLead]=useState<any>({pipeline_stage:'Novo Lead',nivel_interesse:3})
@@ -893,7 +913,7 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark}:any)
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
-      <Header dark={dark} title="Pipeline" subtitle={`${filtered.length} leads`} actions={
+      <Header dark={dark} onMenu={onMenu} title="Pipeline" subtitle={`${filtered.length} leads`} actions={
         <div className="flex gap-2 items-center">
           <select value={filterColab} onChange={e=>setFilterColab(e.target.value)}
             className={cx('text-xs rounded-lg px-2 py-1.5 border focus:outline-none max-w-[130px]',T.input(dark))}>
@@ -984,7 +1004,7 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark}:any)
       <LeadModal dark={dark} lead={selected} open={!!selected} onClose={()=>setSelected(null)}
         onSave={u=>setLeads((ls:any)=>ls.map((l:any)=>l.id===u.id?u:l))}
         onDelete={id=>setLeads((ls:any)=>ls.filter((l:any)=>l.id!==id))}
-        role={role} addToast={addToast} funnels={funnels} companyId={company.id}/>
+        role={role} addToast={addToast} funnels={funnels} companyId={company.id} users={users}/>
     </div>
   )
 }
@@ -992,7 +1012,7 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark}:any)
 // ══════════════════════════════════════════════════════════════════
 // LEADS TABLE
 // ══════════════════════════════════════════════════════════════════
-function LeadsTable({leads,setLeads,role,addToast,company,funnels,dark}:any){
+function LeadsTable({leads,setLeads,role,addToast,company,funnels,users,dark,onMenu}:any){
   const [search,setSearch]=useState('')
   const [filterStage,setFilterStage]=useState('all')
   const [sortBy,setSortBy]=useState('created_at')
@@ -1018,7 +1038,7 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,dark}:any){
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
-      <Header dark={dark} title="Leads" subtitle={`${filtered.length} registros`} actions={
+      <Header dark={dark} onMenu={onMenu} title="Leads" subtitle={`${filtered.length} registros`} actions={
         <button onClick={exportCSV} className={cx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs',dark?'border-white/10 text-slate-400 hover:text-white':'border-slate-300 text-slate-600 hover:text-slate-900')}><Download size={12}/>CSV</button>
       }/>
       <div className="flex-1 overflow-y-auto p-4">
@@ -1104,7 +1124,7 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,dark}:any){
       <LeadModal dark={dark} lead={selected} open={!!selected} onClose={()=>setSelected(null)}
         onSave={u=>setLeads((ls:any)=>ls.map((l:any)=>l.id===u.id?u:l))}
         onDelete={id=>setLeads((ls:any)=>ls.filter((l:any)=>l.id!==id))}
-        role={role} addToast={addToast} funnels={funnels} companyId={company.id}/>
+        role={role} addToast={addToast} funnels={funnels} companyId={company.id} users={users}/>
     </div>
   )
 }
@@ -1112,7 +1132,7 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,dark}:any){
 // ══════════════════════════════════════════════════════════════════
 // CALENDAR
 // ══════════════════════════════════════════════════════════════════
-function CalendarView({company,addToast,user,leads,dark}:any){
+function CalendarView({company,addToast,user,leads,dark,onMenu}:any){
   const [meetings,setMeetings]=useState<any[]>([])
   const [date,setDate]=useState(new Date())
   const [showNew,setShowNew]=useState(false)
@@ -1212,7 +1232,7 @@ function CalendarView({company,addToast,user,leads,dark}:any){
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
-      <Header dark={dark} title="Calendário" subtitle={`${meetings.length} evento${meetings.length!==1?'s':''}`} actions={
+      <Header dark={dark} onMenu={onMenu} title="Calendário" subtitle={`${meetings.length} evento${meetings.length!==1?'s':''}`} actions={
         <button onClick={()=>openNew()} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-semibold transition-all shadow-md shadow-emerald-500/20">
           <Plus size={13}/>Agendar
         </button>
@@ -1450,7 +1470,7 @@ function CalendarView({company,addToast,user,leads,dark}:any){
 // ══════════════════════════════════════════════════════════════════
 // COLABORADORES
 // ══════════════════════════════════════════════════════════════════
-function Colaboradores({company,user,addToast,dark}:any){
+function Colaboradores({company,user,addToast,dark,onMenu}:any){
   const [colabs,setColabs]=useState<any[]>([])
   const [loading,setLoading]=useState(true)
   const [showNew,setShowNew]=useState(false)
@@ -1511,7 +1531,7 @@ function Colaboradores({company,user,addToast,dark}:any){
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
-      <Header dark={dark} title="Colaboradores" subtitle={`${colabs.length} membros`} actions={
+      <Header dark={dark} onMenu={onMenu} title="Colaboradores" subtitle={`${colabs.length} membros`} actions={
         canManage&&<button onClick={()=>setShowNew(true)} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-semibold transition-all"><UserPlus size={13}/>Cadastrar</button>
       }/>
       <div className="flex-1 overflow-y-auto p-4">
@@ -1581,7 +1601,7 @@ function Colaboradores({company,user,addToast,dark}:any){
 // ══════════════════════════════════════════════════════════════════
 // SETTINGS — com troca de senha
 // ══════════════════════════════════════════════════════════════════
-function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCompany}:any){
+function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCompany,onMenu}:any){
   const [uForm,setUForm]=useState({display_name:user.display_name||'',email:user.email||''})
   const [cForm,setCForm]=useState({company_name:company.company_name||''})
   const [pwForm,setPwForm]=useState({current:'',novo:'',confirm:''})
@@ -1675,7 +1695,7 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <Header dark={dark} title="Configurações"/>
+      <Header dark={dark} onMenu={onMenu} title="Configurações"/>
       <div className="p-4 space-y-4 max-w-lg">
         {/* Perfil */}
         <div className={cardCls}>
@@ -1805,7 +1825,7 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
 // ══════════════════════════════════════════════════════════════════
 // SUPORTE
 // ══════════════════════════════════════════════════════════════════
-function Suporte({company,user,addToast,dark}:any){
+function Suporte({company,user,addToast,dark,onMenu}:any){
   const [msg,setMsg]=useState('')
   const [sending,setSending]=useState(false)
   const [tickets,setTickets]=useState<any[]>([])
@@ -1827,7 +1847,7 @@ function Suporte({company,user,addToast,dark}:any){
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
-      <Header dark={dark} title="Suporte" subtitle="Fale com a equipe Flüxa"/>
+      <Header dark={dark} onMenu={onMenu} title="Suporte" subtitle="Fale com a equipe Flüxa"/>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
           <p className={cx('text-xs font-semibold mb-3 flex items-center gap-2',T.text(dark))}><HeadphonesIcon size={13}/>Nova mensagem</p>
@@ -2089,21 +2109,21 @@ export default function App(){
 
   const {company,user}=session
   const isHub=company.company_slug===FLUXA_SLUG&&user.role==='founder'
-  const p={company,user,addToast,leads,setLeads,funnels,users,role:user.role,dark}
+  const p={company,user,addToast,leads,setLeads,funnels,users,role:user.role,dark,onMenu:()=>setSideOpen(true)}
 
   const pages:any={
     // Hub pages
-    hub_dashboard: <HubDashboard dark={dark} addToast={addToast}/>,
-    hub_empresas:  <HubEmpresas dark={dark}/>,
-    hub_criar:     <HubCriarEmpresa dark={dark} addToast={addToast} setTab={setTab}/>,
+    hub_dashboard: <HubDashboard dark={dark} addToast={addToast} onMenu={()=>setSideOpen(true)}/>,
+    hub_empresas:  <HubEmpresas dark={dark} onMenu={()=>setSideOpen(true)}/>,
+    hub_criar:     <HubCriarEmpresa dark={dark} addToast={addToast} setTab={setTab} onMenu={()=>setSideOpen(true)}/>,
     // Normal CRM pages
     dashboard:     <Dashboard {...p}/>,
     pipeline:      <Pipeline {...p}/>,
     leads:         <LeadsTable {...p}/>,
-    calendar:      <CalendarView company={company} user={user} addToast={addToast} leads={leads} dark={dark}/>,
-    colaboradores: <Colaboradores company={company} user={user} addToast={addToast} dark={dark}/>,
-    settings:      <SettingsPage user={user} company={company} dark={dark} setDark={setDark} onLogout={logout} addToast={addToast} setUser={setUser} setCompany={setCompany}/>,
-    suporte:       <Suporte company={company} user={user} addToast={addToast} dark={dark}/>,
+    calendar:      <CalendarView company={company} user={user} addToast={addToast} leads={leads} dark={dark} onMenu={()=>setSideOpen(true)}/>,
+    colaboradores: <Colaboradores company={company} user={user} addToast={addToast} dark={dark} onMenu={()=>setSideOpen(true)}/>,
+    settings:      <SettingsPage user={user} company={company} dark={dark} setDark={setDark} onLogout={logout} addToast={addToast} setUser={setUser} setCompany={setCompany} onMenu={()=>setSideOpen(true)}/>,
+    suporte:       <Suporte company={company} user={user} addToast={addToast} dark={dark} onMenu={()=>setSideOpen(true)}/>,
   }
 
   return (
