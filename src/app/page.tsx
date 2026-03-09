@@ -6,12 +6,12 @@ import {
   Search, Plus, ChevronRight, ChevronLeft, TrendingUp, DollarSign,
   Target, X, Edit2, Trash2, Phone, Mail, MessageSquare, AlertCircle,
   ChevronDown, Download, Star, Zap, CheckCircle, RefreshCw,
-  Upload, User, Building2, Move, Briefcase, ChevronUp, Camera, Shield,
+  Upload, User, Building2, Move, Briefcase, ChevronUp, Camera, Shield, Clock, MessageCircle,
   UserPlus, PenLine, HeadphonesIcon, Send, Menu, Eye, EyeOff, Hash, Bell,
   Lock, Globe, BarChart2
 } from 'lucide-react'
 import {
-  AreaChart, Area, PieChart, Pie, Cell,
+  AreaChart, Area, PieChart, Pie, Cell, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 
@@ -332,6 +332,7 @@ function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDa
     {id:'hub_dashboard',  label:'Dashboard',       icon:LayoutDashboard},
     {id:'fluxa_funil',    label:'Funil de Vendas', icon:GitBranch},
     {id:'fluxa_prospects',label:'Prospects',        icon:Users},
+    {id:'fluxa_calendario',label:'Calendário',       icon:Calendar},
     {id:'hub_empresas',   label:'Empresas',         icon:Globe},
     {id:'hub_criar',      label:'Criar Empresa',    icon:Plus},
     {id:'colaboradores',  label:'Colaboradores',    icon:Shield},
@@ -536,68 +537,241 @@ function Dashboard({leads,company,addToast,dark,onMenu}:any){
 }
 
 // ══════════════════════════════════════════════════════════════════
-// HUB DASHBOARD (somente Flüxa founder)
+// HUB DASHBOARD (somente Flüxa founder) — Design Premium
 // ══════════════════════════════════════════════════════════════════
 function HubDashboard({dark,addToast,onMenu}:any){
   const [companies,setCompanies]=useState<any[]>([])
   const [users,setUsers]=useState<any[]>([])
+  const [prospects,setProspects]=useState<any[]>([])
   const [loading,setLoading]=useState(true)
+  const [now]=useState(new Date())
 
   useEffect(()=>{
     Promise.all([
       sb.from('companies').select('*').order('created_at',{ascending:false}),
       sb.from('users').select('*').eq('active',true),
-    ]).then(([cr,ur])=>{
+      sb.from('fluxa_prospects').select('*').order('created_at',{ascending:false}),
+    ]).then(([cr,ur,pr])=>{
       if(cr.data) setCompanies(cr.data)
       if(ur.data) setUsers(ur.data)
+      if(pr.data) setProspects(pr.data)
       setLoading(false)
     })
   },[])
 
+  const fluxaId=companies.find((c:any)=>c.company_slug===FLUXA_SLUG)?.id
   const active=companies.filter(c=>c.crm_active&&c.company_slug!==FLUXA_SLUG)
   const total=companies.filter(c=>c.company_slug!==FLUXA_SLUG)
-  const totalUsers=users.filter(u=>u.company_id!==companies.find((c:any)=>c.company_slug===FLUXA_SLUG)?.id).length
+  const totalUsers=users.filter(u=>u.company_id!==fluxaId).length
+
+  // Métricas funil
+  const mrrFechado=prospects.filter(p=>p.stage==='bofu_fechado').reduce((a:number,p:any)=>a+Number(p.mrr_estimado||0),0)
+  const mrrPipeline=prospects.filter(p=>!['perdido','bofu_fechado'].includes(p.stage)).reduce((a:number,p:any)=>a+Number(p.mrr_estimado||0),0)
+  const emNegoc=prospects.filter(p=>['bofu_proposta','bofu_negoc'].includes(p.stage)).length
+  const perdidos=prospects.filter(p=>p.stage==='perdido').length
+  const taxaConv=prospects.length>0?Math.round((prospects.filter(p=>p.stage==='bofu_fechado').length/prospects.length)*100):0
+
+  // Dados do funil para gráfico
+  const funnelData=FUNIL_STAGES.filter(s=>s.id!=='perdido').map(s=>({
+    name:s.label.replace(' ✓',''),
+    value:prospects.filter(p=>p.stage===s.id).length,
+    fill:s.id==='bofu_fechado'?'#10B981':s.fase==='ToFu'?'#38BDF8':s.fase==='MoFu'?'#A78BFA':'#FB923C'
+  }))
+
+  // Atividade semanal (últimos 7 dias de prospects criados)
+  const weekData=Array.from({length:7},(_,i)=>{
+    const d=new Date(now);d.setDate(d.getDate()-6+i)
+    const ds=d.toISOString().slice(0,10)
+    return {
+      day:['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()],
+      prospects:prospects.filter(p=>p.created_at?.slice(0,10)===ds).length,
+      clientes:companies.filter(c=>c.created_at?.slice(0,10)===ds&&c.company_slug!==FLUXA_SLUG).length,
+    }
+  })
+
+  // Distribuição de prioridades
+  const prioData=[
+    {name:'Urgente',value:prospects.filter(p=>p.prioridade==='Urgente').length,fill:'#F87171'},
+    {name:'Alta',   value:prospects.filter(p=>p.prioridade==='Alta').length,   fill:'#FB923C'},
+    {name:'Média',  value:prospects.filter(p=>p.prioridade==='Média'||!p.prioridade).length,fill:'#60A5FA'},
+    {name:'Baixa',  value:prospects.filter(p=>p.prioridade==='Baixa').length,  fill:'#94A3B8'},
+  ].filter(d=>d.value>0)
+
+  // Próximas ações vencidas ou próximas
+  const hoje=now.toISOString().slice(0,10)
+  const alertas=prospects.filter(p=>p.proxima_acao&&p.data_proxima_acao&&p.data_proxima_acao<=hoje&&p.stage!=='bofu_fechado'&&p.stage!=='perdido').slice(0,5)
+
+  const Stat=({label,val,sub,icon:Icon,grad,loading:l}:any)=>(
+    <div className={cx('relative p-5 rounded-2xl border overflow-hidden',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+      <div className={cx('absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-6 translate-x-6',grad)}/>
+      <div className={cx('w-10 h-10 rounded-xl flex items-center justify-center mb-4',grad)}>
+        <Icon size={18} className="text-white"/>
+      </div>
+      {l?<Sk className="h-8 w-20 mb-1"/>:<p className={cx('text-2xl font-black mb-0.5',dark?'text-white':'text-slate-900')}>{val}</p>}
+      <p className={cx('text-xs font-semibold',dark?'text-slate-400':'text-slate-500')}>{label}</p>
+      {sub&&<p className={cx('text-[10px] mt-1',dark?'text-slate-600':'text-slate-400')}>{sub}</p>}
+    </div>
+  )
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <Header dark={dark} onMenu={onMenu} title="Hub Dashboard" subtitle="Visão geral da plataforma"/>
-      <div className="p-4 space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            {label:'Empresas Ativas',val:String(active.length),icon:Building2,iconBg:dark?'bg-emerald-500/20':'bg-emerald-100',iconCl:dark?'text-emerald-400':'text-emerald-700',border:dark?'border-white/[0.07]':'border-emerald-200'},
-            {label:'Total Usuários', val:String(totalUsers),   icon:Users,    iconBg:dark?'bg-blue-500/20':'bg-blue-100',   iconCl:dark?'text-blue-400':'text-blue-700',   border:dark?'border-white/[0.07]':'border-blue-200'},
-            {label:'Total Empresas', val:String(total.length),icon:Globe, iconBg:dark?'bg-violet-500/20':'bg-violet-100',iconCl:dark?'text-violet-400':'text-violet-700',border:dark?'border-white/[0.07]':'border-violet-200'},
-            {label:'Leads Totais',   val:'—',                  icon:BarChart2,iconBg:dark?'bg-amber-500/20':'bg-amber-100', iconCl:dark?'text-amber-400':'text-amber-700', border:dark?'border-white/[0.07]':'border-amber-200'},
-          ].map(({label,val,icon:Icon,iconBg,iconCl,border})=>(
-            <div key={label} className={cx('p-4 rounded-2xl border',dark?'bg-white/[0.03]':'bg-white shadow-sm',border)}>
-              <div className={cx('w-9 h-9 rounded-xl flex items-center justify-center mb-3',iconBg)}><Icon size={16} className={iconCl}/></div>
-              {loading?<Sk className="h-7 w-16 mb-1"/>:<p className={cx('text-xl font-bold mb-0.5',T.text(dark))}>{val}</p>}
-              <p className={cx('text-xs font-medium',T.muted(dark))}>{label}</p>
-            </div>
-          ))}
+      {/* Header */}
+      <div className={cx('flex items-center justify-between px-5 py-4 border-b sticky top-0 z-10',dark?'bg-slate-950/80 border-white/[0.06] backdrop-blur-md':'bg-white/80 border-slate-100 backdrop-blur-md')}>
+        <div className="flex items-center gap-3">
+          <button onClick={onMenu} className={cx('sm:hidden p-2 rounded-xl',dark?'hover:bg-white/10':'hover:bg-slate-100')}><Menu size={16} className={dark?'text-slate-400':'text-slate-500'}/></button>
+          <div>
+            <h1 className={cx('text-base font-black',dark?'text-white':'text-slate-900')}>Flüxa Dashboard</h1>
+            <p className={cx('text-[11px]',dark?'text-slate-500':'text-slate-400')}>{now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</p>
+          </div>
         </div>
-        <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
-          <p className={cx('text-sm font-semibold mb-3',T.text(dark))}>Empresas Recentes</p>
-          {loading?<Sk className="h-24"/>:(
-            <div className="space-y-2">
-              {companies.filter(c=>c.company_slug!==FLUXA_SLUG).slice(0,5).map(c=>(
-                <div key={c.id} className={cx('flex items-center gap-3 p-2.5 rounded-xl',T.row(dark))}>
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shrink-0"><Zap size={12} className="text-white"/></div>
-                  <div className="flex-1 min-w-0">
-                    <p className={cx('text-xs font-semibold truncate',T.text(dark))}>{c.company_name}</p>
-                    <p className={cx('text-[10px]',T.muted(dark))}>@{c.company_slug}</p>
-                  </div>
-                  <span className={cx('text-[10px] px-2 py-0.5 rounded-full border font-medium',c.crm_active?'bg-emerald-500/15 text-emerald-600 border-emerald-400/30':'bg-red-500/15 text-red-500 border-red-400/30')}>{c.crm_active?'Ativa':'Inativa'}</span>
-                </div>
-              ))}
+        <div className="flex items-center gap-2">
+          <div className={cx('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold',dark?'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20':'bg-emerald-50 text-emerald-700 border border-emerald-200')}>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"/>
+            Plataforma Online
+          </div>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-5">
+        {/* KPIs principais — linha 1 */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Stat loading={loading} label="Clientes Ativos" val={active.length} sub={`${total.length} total`} icon={Building2} grad="bg-gradient-to-br from-emerald-400 to-teal-600"/>
+          <Stat loading={loading} label="MRR Fechado" val={`R$${mrrFechado.toLocaleString('pt-BR')}`} sub="contratos ativos" icon={DollarSign} grad="bg-gradient-to-br from-violet-400 to-purple-600"/>
+          <Stat loading={loading} label="Pipeline" val={`R$${mrrPipeline.toLocaleString('pt-BR')}`} sub={`${prospects.filter(p=>!['perdido','bofu_fechado'].includes(p.stage)).length} prospects`} icon={TrendingUp} grad="bg-gradient-to-br from-amber-400 to-orange-500"/>
+          <Stat loading={loading} label="Taxa Conversão" val={`${taxaConv}%`} sub={`${prospects.filter(p=>p.stage==='bofu_fechado').length} fechados`} icon={Target} grad="bg-gradient-to-br from-blue-400 to-indigo-600"/>
+        </div>
+
+        {/* Linha 2 — Gráfico atividade + Funil */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Atividade semanal */}
+          <div className={cx('lg:col-span-2 p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className={cx('text-sm font-bold',dark?'text-white':'text-slate-900')}>Atividade Semanal</p>
+                <p className={cx('text-[11px]',dark?'text-slate-500':'text-slate-400')}>Últimos 7 dias</p>
+              </div>
+              <div className="flex items-center gap-3 text-[10px]">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"/>Prospects</span>
+                <span className={cx('flex items-center gap-1',dark?'text-slate-400':'text-slate-500')}><span className="w-2 h-2 rounded-full bg-violet-400 inline-block"/>Clientes</span>
+              </div>
             </div>
-          )}
+            {loading?<Sk className="h-40"/>:(
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={weekData} barGap={4} barSize={16}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={dark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.06)'} vertical={false}/>
+                  <XAxis dataKey="day" tick={{fontSize:10,fill:dark?'#64748b':'#94a3b8'}} axisLine={false} tickLine={false}/>
+                  <YAxis tick={{fontSize:10,fill:dark?'#64748b':'#94a3b8'}} axisLine={false} tickLine={false} allowDecimals={false}/>
+                  <Tooltip contentStyle={{background:dark?'#0f172a':'#fff',border:`1px solid ${dark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)'}`,borderRadius:12,fontSize:11}}/>
+                  <Bar dataKey="prospects" fill="#10B981" radius={[6,6,0,0]} name="Prospects"/>
+                  <Bar dataKey="clientes" fill="#8B5CF6" radius={[6,6,0,0]} name="Clientes"/>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Distribuição Funil */}
+          <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+            <p className={cx('text-sm font-bold mb-1',dark?'text-white':'text-slate-900')}>Funil de Vendas</p>
+            <p className={cx('text-[11px] mb-4',dark?'text-slate-500':'text-slate-400')}>{prospects.filter(p=>p.stage!=='perdido').length} prospects ativos</p>
+            {loading?<Sk className="h-40"/>:(
+              prospects.length===0
+                ?<div className={cx('flex flex-col items-center justify-center h-32',dark?'text-slate-600':'text-slate-400')}>
+                  <Target size={24} className="mb-2 opacity-40"/>
+                  <p className="text-xs">Nenhum prospect</p>
+                </div>
+                :<div className="space-y-2">
+                  {funnelData.filter(d=>d.value>0).map(d=>(
+                    <div key={d.name} className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{background:d.fill}}/>
+                      <p className={cx('text-[10px] flex-1 truncate',dark?'text-slate-400':'text-slate-500')}>{d.name}</p>
+                      <div className={cx('flex-1 h-1.5 rounded-full overflow-hidden',dark?'bg-white/5':'bg-slate-100')}>
+                        <div className="h-full rounded-full" style={{width:`${Math.max(8,(d.value/prospects.length)*100)}%`,background:d.fill}}/>
+                      </div>
+                      <span className={cx('text-[10px] font-bold w-4 text-right',dark?'text-slate-300':'text-slate-700')}>{d.value}</span>
+                    </div>
+                  ))}
+                </div>
+            )}
+          </div>
+        </div>
+
+        {/* Linha 3 — Alertas + Clientes recentes + Mini stats */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          {/* Alertas — ações vencidas */}
+          <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-7 h-7 rounded-xl bg-red-500/15 flex items-center justify-center"><AlertCircle size={14} className="text-red-400"/></div>
+              <div>
+                <p className={cx('text-sm font-bold',dark?'text-white':'text-slate-900')}>Ações Vencidas</p>
+                <p className={cx('text-[11px]',dark?'text-slate-500':'text-slate-400')}>{alertas.length} pendentes</p>
+              </div>
+            </div>
+            {loading?<Sk className="h-32"/>:(
+              alertas.length===0
+                ?<div className={cx('flex flex-col items-center justify-center py-6',dark?'text-slate-600':'text-slate-400')}>
+                  <CheckCircle size={22} className="mb-2 text-emerald-500 opacity-60"/>
+                  <p className="text-xs">Tudo em dia! 🎉</p>
+                </div>
+                :<div className="space-y-2">
+                  {alertas.map(p=>(
+                    <div key={p.id} className={cx('p-2.5 rounded-xl border',dark?'bg-red-500/5 border-red-500/20':'bg-red-50 border-red-100')}>
+                      <p className={cx('text-xs font-semibold truncate',dark?'text-white':'text-slate-900')}>{p.nome}</p>
+                      <p className={cx('text-[10px] truncate',dark?'text-red-400':'text-red-500')}>{p.proxima_acao}</p>
+                      <p className={cx('text-[10px]',dark?'text-red-500':'text-red-400')}>{new Date(p.data_proxima_acao).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                  ))}
+                </div>
+            )}
+          </div>
+
+          {/* Clientes recentes */}
+          <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+            <p className={cx('text-sm font-bold mb-1',dark?'text-white':'text-slate-900')}>Clientes Recentes</p>
+            <p className={cx('text-[11px] mb-4',dark?'text-slate-500':'text-slate-400')}>{active.length} empresas ativas</p>
+            {loading?<Sk className="h-40"/>:(
+              <div className="space-y-2">
+                {companies.filter(c=>c.company_slug!==FLUXA_SLUG).slice(0,5).map(c=>(
+                  <div key={c.id} className={cx('flex items-center gap-2.5 p-2 rounded-xl',dark?'hover:bg-white/[0.03]':'hover:bg-slate-50')}>
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shrink-0 text-white text-xs font-bold">
+                      {c.company_name?.[0]?.toUpperCase()||'?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={cx('text-xs font-semibold truncate',dark?'text-white':'text-slate-900')}>{c.company_name}</p>
+                      <p className={cx('text-[10px]',dark?'text-slate-500':'text-slate-400')}>@{c.company_slug}</p>
+                    </div>
+                    <span className={cx('shrink-0 text-[9px] px-1.5 py-0.5 rounded-full font-semibold',c.crm_active?'bg-emerald-500/15 text-emerald-500':'bg-red-500/15 text-red-400')}>{c.crm_active?'Ativa':'Inativa'}</span>
+                  </div>
+                ))}
+                {companies.filter(c=>c.company_slug!==FLUXA_SLUG).length===0&&(
+                  <p className={cx('text-xs text-center py-4',dark?'text-slate-600':'text-slate-400')}>Nenhum cliente ainda.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Mini stats lado direito */}
+          <div className="space-y-3">
+            {[
+              {label:'Usuários na Plataforma',val:String(totalUsers),icon:Users,cl:'text-blue-400',bg:'bg-blue-500/10',border:dark?'border-white/[0.07]':'border-blue-100'},
+              {label:'Em Negociação',val:String(emNegoc),icon:Briefcase,cl:'text-amber-400',bg:'bg-amber-500/10',border:dark?'border-white/[0.07]':'border-amber-100'},
+              {label:'Perdidos',val:String(perdidos),icon:AlertCircle,cl:'text-red-400',bg:'bg-red-500/10',border:dark?'border-white/[0.07]':'border-red-100'},
+              {label:'Total Prospects',val:String(prospects.length),icon:BarChart2,cl:'text-violet-400',bg:'bg-violet-500/10',border:dark?'border-white/[0.07]':'border-violet-100'},
+            ].map(({label,val,icon:Icon,cl,bg,border})=>(
+              <div key={label} className={cx('flex items-center gap-3 p-3.5 rounded-2xl border',dark?'bg-white/[0.03]':'bg-white shadow-sm',border)}>
+                <div className={cx('w-9 h-9 rounded-xl flex items-center justify-center shrink-0',bg)}><Icon size={15} className={cl}/></div>
+                <div>
+                  {loading?<Sk className="h-5 w-12"/>:<p className={cx('text-base font-black',dark?'text-white':'text-slate-900')}>{val}</p>}
+                  <p className={cx('text-[10px] font-medium',dark?'text-slate-500':'text-slate-400')}>{label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   )
 }
-
 // ══════════════════════════════════════════════════════════════════
 // FUNIL FLÜXA — ToFu / MoFu / BoFu (exclusivo Hub)
 // ══════════════════════════════════════════════════════════════════
@@ -628,136 +802,141 @@ const PRIO_STYLE:any = {
 }
 
 // Modal de lead do funil Flüxa
+// Atalhos de data rápidos para próxima ação
+const DATE_SHORTCUTS=[
+  {label:'Hoje',days:0},{label:'Amanhã',days:1},{label:'Em 2 dias',days:2},
+  {label:'Em 1 semana',days:7},{label:'Em 15 dias',days:15},{label:'Em 30 dias',days:30},
+]
+function addDays(d:number){const dt=new Date();dt.setDate(dt.getDate()+d);return dt.toISOString().slice(0,10)}
+function fmtDateBR(iso:string){if(!iso)return '';const[y,m,d]=iso.split('-');return `${d}/${m}/${y}`}
+function diasAte(iso:string){
+  if(!iso) return null
+  const diff=Math.round((new Date(iso+'T12:00:00').getTime()-new Date(new Date().toDateString()).getTime())/86400000)
+  if(diff<0) return {txt:`${Math.abs(diff)}d atrás`,cl:'text-red-400'}
+  if(diff===0) return {txt:'Hoje',cl:'text-amber-400'}
+  if(diff===1) return {txt:'Amanhã',cl:'text-emerald-400'}
+  return {txt:`Em ${diff} dias`,cl:'text-blue-400'}
+}
+
 function FluxaLeadModal({lead,open,onClose,onSave,onDelete,dark,addToast}:any){
-  const empty={
-    nome:'',empresa:'',telefone:'',email:'',cargo:'',
-    origem:'',prioridade:'Média',stage:'tofu_contato',
-    mrr_estimado:0,observacoes:'',proxima_acao:'',data_proxima_acao:'',
-  }
+  const empty={nome:'',empresa:'',telefone:'',email:'',cargo:'',origem:'',prioridade:'Média',stage:'tofu_contato',mrr_estimado:0,observacoes:'',proxima_acao:'',data_proxima_acao:''}
   const [form,setForm]=useState<any>(empty)
   const [saving,setSaving]=useState(false)
   const [notas,setNotas]=useState<any[]>([])
   const [novaNota,setNovaNota]=useState('')
   const [sendingNota,setSendingNota]=useState(false)
   const [delConfirm,setDelConfirm]=useState(false)
-  const [activeTab,setActiveTab]=useState<'info'|'timeline'>('info')
+  const [activeTab,setActiveTab]=useState<'info'|'acao'|'timeline'>('info')
+  const [showDatePicker,setShowDatePicker]=useState(false)
+  const [calDate,setCalDate]=useState(new Date())
+  const dateRef=useRef<HTMLDivElement>(null)
 
   useEffect(()=>{
-    if(lead){
-      setForm({...empty,...lead})
-      setNotas([])
-      setActiveTab('info')
-      sb.from('fluxa_prospect_notas').select('*').eq('prospect_id',lead.id).order('created_at',{ascending:false}).then(({data})=>{
-        if(data) setNotas(data)
-      })
-    } else {
-      setForm(empty)
-      setNotas([])
+    const handler=(e:MouseEvent)=>{if(dateRef.current&&!dateRef.current.contains(e.target as Node))setShowDatePicker(false)}
+    document.addEventListener('mousedown',handler)
+    return()=>document.removeEventListener('mousedown',handler)
+  },[])
+
+  useEffect(()=>{
+    if(open){
+      if(lead){setForm({...empty,...lead});setNotas([]);setActiveTab('info');sb.from('fluxa_prospect_notas').select('*').eq('prospect_id',lead.id).order('created_at',{ascending:false}).then(({data})=>{if(data)setNotas(data)})}
+      else{setForm(empty);setNotas([]);setActiveTab('info')}
     }
-  },[lead])
+  },[open,lead])
 
   const set=(k:string,v:any)=>setForm((f:any)=>({...f,[k]:v}))
+
+  const MLONG=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const calY=calDate.getFullYear(),calMo=calDate.getMonth()
+  const fd2=new Date(calY,calMo,1).getDay(),dim2=new Date(calY,calMo+1,0).getDate()
+  const calCells=[...Array(fd2).fill(null),...Array.from({length:dim2},(_:any,i:number)=>i+1)]
 
   const save=async()=>{
     if(!form.nome?.trim()){addToast('Nome é obrigatório.','error');return}
     setSaving(true)
-    const payload={
-      nome:form.nome,empresa:form.empresa,telefone:form.telefone,
-      email:form.email,cargo:form.cargo,origem:form.origem,
-      prioridade:form.prioridade,stage:form.stage,
-      mrr_estimado:Number(form.mrr_estimado)||0,
-      observacoes:form.observacoes,proxima_acao:form.proxima_acao,
-      data_proxima_acao:form.data_proxima_acao||null,
-      updated_at:new Date().toISOString()
-    }
+    const payload={nome:form.nome,empresa:form.empresa,telefone:form.telefone,email:form.email,cargo:form.cargo,origem:form.origem,prioridade:form.prioridade,stage:form.stage,mrr_estimado:Number(form.mrr_estimado)||0,observacoes:form.observacoes,proxima_acao:form.proxima_acao,data_proxima_acao:form.data_proxima_acao||null,updated_at:new Date().toISOString()}
     if(lead?.id){
       const{error}=await sb.from('fluxa_prospects').update(payload).eq('id',lead.id)
-      setSaving(false)
-      if(error){addToast('Erro ao salvar: '+error.message,'error');return}
-      onSave({...lead,...form,...payload})
-      addToast('Prospect salvo!','success')
-      onClose()
+      setSaving(false);if(error){addToast('Erro ao salvar: '+error.message,'error');return}
+      onSave({...lead,...form,...payload});addToast('Prospect salvo!','success');onClose()
     } else {
       const{data,error}=await sb.from('fluxa_prospects').insert({...payload,created_at:new Date().toISOString()}).select().single()
-      setSaving(false)
-      if(error){addToast('Erro ao criar: '+error.message,'error');return}
-      onSave(data)
-      addToast('Prospect criado!','success')
-      onClose()
+      setSaving(false);if(error){addToast('Erro ao criar: '+error.message,'error');return}
+      onSave(data);addToast('Prospect criado! 🎉','success');onClose()
     }
   }
 
   const addNota=async()=>{
     if(!novaNota.trim()||!lead?.id) return
     setSendingNota(true)
-    const{data,error}=await sb.from('fluxa_prospect_notas').insert({
-      prospect_id:lead.id,nota:novaNota.trim(),created_at:new Date().toISOString()
-    }).select().single()
-    setSendingNota(false)
-    if(error){addToast('Erro ao salvar nota.','error');return}
-    setNotas((n:any)=>[data,...n])
-    setNovaNota('')
+    const{data,error}=await sb.from('fluxa_prospect_notas').insert({prospect_id:lead.id,nota:novaNota.trim(),created_at:new Date().toISOString()}).select().single()
+    setSendingNota(false);if(error){addToast('Erro.','error');return}
+    setNotas((n:any)=>[data,...n]);setNovaNota('')
   }
 
   const del=async()=>{
     if(!lead?.id) return
     const{error}=await sb.from('fluxa_prospects').delete().eq('id',lead.id)
     if(error){addToast('Erro ao excluir.','error');return}
-    onDelete(lead.id)
-    addToast('Prospect removido.','success')
-    setDelConfirm(false)
-    onClose()
+    onDelete(lead.id);addToast('Removido.','success');setDelConfirm(false);onClose()
   }
 
   const stageInfo=FUNIL_STAGES.find(s=>s.id===form.stage)||FUNIL_STAGES[0]
+  const dataInfo=diasAte(form.data_proxima_acao)
 
   if(!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3" style={{background:'rgba(0,0,0,0.7)'}}>
-      <div className={cx('w-full max-w-2xl rounded-2xl border flex flex-col',dark?'bg-slate-900 border-white/10':'bg-white border-slate-200','max-h-[92vh]')}>
-        {/* Header */}
-        <div className={cx('flex items-center justify-between px-5 py-4 border-b shrink-0',dark?'border-white/10':'border-slate-100')}>
-          <div className="flex items-center gap-3">
-            <div className={cx('w-2.5 h-2.5 rounded-full',stageInfo.cor)}/>
-            <div>
-              <h2 className={cx('font-bold text-base',dark?'text-white':'text-slate-900')}>{lead?.id?form.nome||'Prospect':'Novo Prospect'}</h2>
-              <p className={cx('text-xs',dark?'text-slate-400':'text-slate-500')}>{stageInfo.fase} · {stageInfo.label}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className={cx('p-1.5 rounded-lg',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-500')}><X size={16}/></button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3" style={{background:'rgba(0,0,0,0.75)'}}>
+      <div className={cx('w-full max-w-2xl rounded-2xl border flex flex-col shadow-2xl',dark?'bg-slate-900 border-white/10':'bg-white border-slate-200','max-h-[94vh]')}>
 
-        {/* Tabs */}
-        <div className={cx('flex gap-1 px-5 pt-3 shrink-0',dark?'':'')}>
-          {(['info','timeline'] as const).map(t=>(
-            <button key={t} onClick={()=>setActiveTab(t)}
-              className={cx('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                activeTab===t?(dark?'bg-emerald-500/20 text-emerald-400':'bg-emerald-100 text-emerald-700'):(dark?'text-slate-500 hover:text-slate-300':'text-slate-500 hover:text-slate-700'))}>
-              {t==='info'?'Informações':'Timeline'}
-            </button>
-          ))}
+        {/* Header */}
+        <div className={cx('px-5 pt-5 pb-0 border-b shrink-0',dark?'border-white/10':'border-slate-100')}>
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className={cx('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',stageInfo.bg)}>
+                <div className={cx('w-3 h-3 rounded-full',stageInfo.cor)}/>
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className={cx('font-black text-base truncate',dark?'text-white':'text-slate-900')}>{lead?.id?(form.nome||'Prospect'):'✨ Novo Prospect'}</h2>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <span className={cx('text-[10px] font-semibold px-2 py-0.5 rounded-md border',stageInfo.bg,stageInfo.text,stageInfo.border)}>{stageInfo.fase} · {stageInfo.label}</span>
+                  {form.prioridade&&form.prioridade!=='Média'&&<span className={cx('text-[10px] font-semibold px-2 py-0.5 rounded-md border',PRIO_STYLE[form.prioridade])}>{form.prioridade}</span>}
+                  {Number(form.mrr_estimado)>0&&<span className={cx('text-[10px] font-bold',dark?'text-emerald-400':'text-emerald-600')}>R${Number(form.mrr_estimado).toLocaleString('pt-BR')}/mês</span>}
+                </div>
+              </div>
+            </div>
+            <button onClick={onClose} className={cx('p-1.5 rounded-lg shrink-0',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-500')}><X size={16}/></button>
+          </div>
+          {/* Tabs */}
+          <div className="flex gap-1">
+            {([{id:'info',label:'📋 Info'},{id:'acao',label:'⚡ Próxima Ação'},{id:'timeline',label:'🕐 Timeline'}] as const).map(t=>(
+              <button key={t.id} onClick={()=>setActiveTab(t.id)}
+                className={cx('px-3 py-2 rounded-t-lg text-xs font-semibold transition-all border-b-2',
+                  activeTab===t.id?(dark?'text-emerald-400 border-emerald-400':'text-emerald-700 border-emerald-500'):(dark?'text-slate-500 border-transparent hover:text-slate-300':'text-slate-500 border-transparent hover:text-slate-700'))}>
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {activeTab==='info'&&(
-            <>
-              {/* Etapa */}
-              <div>
-                <p className={cx('text-xs font-semibold mb-2',dark?'text-slate-400':'text-slate-500')}>ETAPA DO FUNIL</p>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {FUNIL_STAGES.map(s=>(
-                    <button key={s.id} onClick={()=>set('stage',s.id)}
-                      className={cx('p-2 rounded-xl border text-[10px] font-semibold text-center transition-all leading-tight',
-                        form.stage===s.id?cx(s.bg,s.text,s.border):(dark?'border-white/10 text-slate-500 hover:border-white/20':'border-slate-200 text-slate-500 hover:border-slate-300'))}>
-                      <div className={cx('w-1.5 h-1.5 rounded-full mx-auto mb-1',s.cor)}/>
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
 
-              {/* Dados */}
+          {activeTab==='info'&&(<>
+            <div>
+              <p className={cx('text-[10px] font-bold uppercase tracking-wider mb-2',dark?'text-slate-500':'text-slate-400')}>Etapa do Funil</p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {FUNIL_STAGES.map(s=>(
+                  <button key={s.id} onClick={()=>set('stage',s.id)}
+                    className={cx('p-2 rounded-xl border text-[10px] font-semibold text-center transition-all leading-tight',
+                      form.stage===s.id?cx(s.bg,s.text,s.border,'shadow-sm'):(dark?'border-white/8 text-slate-600 hover:border-white/20':'border-slate-200 text-slate-400 hover:border-slate-300'))}>
+                    <div className={cx('w-1.5 h-1.5 rounded-full mx-auto mb-1',s.cor)}/>{s.label.replace(' ✓','').replace(' ✗','')}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className={cx('text-[10px] font-bold uppercase tracking-wider mb-2',dark?'text-slate-500':'text-slate-400')}>Dados de Contato</p>
               <div className="grid grid-cols-2 gap-3">
                 <Field dark={dark} label="Nome *" value={form.nome} onChange={(v:string)=>set('nome',v)} placeholder="Nome completo"/>
                 <Field dark={dark} label="Empresa" value={form.empresa} onChange={(v:string)=>set('empresa',v)} placeholder="Vidraçaria XYZ"/>
@@ -766,8 +945,9 @@ function FluxaLeadModal({lead,open,onClose,onSave,onDelete,dark,addToast}:any){
                 <Field dark={dark} label="Cargo" value={form.cargo} onChange={(v:string)=>set('cargo',v)} placeholder="Dono, Gerente..."/>
                 <Sel dark={dark} label="Origem" value={form.origem} onChange={(v:string)=>set('origem',v)} options={[{value:'',label:'Selecione...'},...ORIGENS.map(o=>({value:o,label:o}))]}/>
               </div>
-
-              {/* MRR + Prioridade */}
+            </div>
+            <div>
+              <p className={cx('text-[10px] font-bold uppercase tracking-wider mb-2',dark?'text-slate-500':'text-slate-400')}>Qualificação</p>
               <div className="grid grid-cols-2 gap-3">
                 <Field dark={dark} label="MRR Estimado (R$)" value={String(form.mrr_estimado||'')} onChange={(v:string)=>set('mrr_estimado',v)} placeholder="2500" icon={DollarSign}/>
                 <div>
@@ -775,49 +955,143 @@ function FluxaLeadModal({lead,open,onClose,onSave,onDelete,dark,addToast}:any){
                   <div className="flex gap-1.5 flex-wrap">
                     {PRIORIDADES.map(p=>(
                       <button key={p} onClick={()=>set('prioridade',p)}
-                        className={cx('px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all',
-                          form.prioridade===p?PRIO_STYLE[p]:(dark?'border-white/10 text-slate-500':'border-slate-200 text-slate-500'))}>
-                        {p}
-                      </button>
+                        className={cx('px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all',form.prioridade===p?PRIO_STYLE[p]:(dark?'border-white/10 text-slate-500':'border-slate-200 text-slate-500'))}>{p}</button>
                     ))}
                   </div>
                 </div>
               </div>
+            </div>
+            <Textarea dark={dark} label="Observações" value={form.observacoes} onChange={(v:string)=>set('observacoes',v)} placeholder="Informações relevantes sobre o prospect..." rows={3}/>
+          </>)}
 
-              {/* Próxima ação */}
-              <div className="grid grid-cols-2 gap-3">
-                <Field dark={dark} label="Próxima Ação" value={form.proxima_acao} onChange={(v:string)=>set('proxima_acao',v)} placeholder="Ligar, enviar proposta..."/>
-                <Field dark={dark} label="Data da Próxima Ação" value={form.data_proxima_acao||''} onChange={(v:string)=>set('data_proxima_acao',v)} type="date"/>
+          {activeTab==='acao'&&(
+            <div className="space-y-5">
+              <div>
+                <p className={cx('text-[10px] font-bold uppercase tracking-wider mb-2',dark?'text-slate-500':'text-slate-400')}>O que fazer?</p>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {['Ligar','Enviar proposta','Agendar call','Follow-up','Reunião presencial','Enviar contrato','Aguardar retorno'].map(a=>(
+                    <button key={a} onClick={()=>set('proxima_acao',a)}
+                      className={cx('px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all',
+                        form.proxima_acao===a?(dark?'bg-emerald-500/20 text-emerald-400 border-emerald-500/40':'bg-emerald-50 text-emerald-700 border-emerald-300'):(dark?'border-white/10 text-slate-500 hover:border-white/20':'border-slate-200 text-slate-600 hover:border-slate-300'))}>
+                      {a}
+                    </button>
+                  ))}
+                </div>
+                <Field dark={dark} label="Ou descreva a ação" value={form.proxima_acao} onChange={(v:string)=>set('proxima_acao',v)} placeholder="Ex: Ligar às 14h para apresentar proposta..."/>
               </div>
 
-              {/* Observações */}
-              <Textarea dark={dark} label="Observações" value={form.observacoes} onChange={(v:string)=>set('observacoes',v)} placeholder="Informações relevantes sobre o prospect..." rows={3}/>
-            </>
+              <div>
+                <p className={cx('text-[10px] font-bold uppercase tracking-wider mb-2',dark?'text-slate-500':'text-slate-400')}>Quando?</p>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {DATE_SHORTCUTS.map((s:any)=>{
+                    const iso=addDays(s.days)
+                    const active=form.data_proxima_acao===iso
+                    return (
+                      <button key={s.label} onClick={()=>set('data_proxima_acao',iso)}
+                        className={cx('px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all',
+                          active?(dark?'bg-violet-500/20 text-violet-300 border-violet-500/40':'bg-violet-50 text-violet-700 border-violet-300'):(dark?'border-white/10 text-slate-500 hover:border-white/20':'border-slate-200 text-slate-600 hover:border-slate-300'))}>
+                        {s.label}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Botão data + popup calendário */}
+                <div ref={dateRef} className="relative">
+                  <button onClick={()=>{setShowDatePicker(v=>!v);if(form.data_proxima_acao)setCalDate(new Date(form.data_proxima_acao+'T12:00:00'))}}
+                    className={cx('w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all',
+                      dark?'border-white/10 bg-white/[0.03] hover:border-white/20':'border-slate-200 bg-white hover:border-slate-300',
+                      showDatePicker&&(dark?'border-emerald-500/50':'border-emerald-400'))}>
+                    <Calendar size={15} className={dark?'text-slate-500':'text-slate-400'}/>
+                    <div className="flex-1">
+                      {form.data_proxima_acao
+                        ?<><p className={cx('text-sm font-bold',dark?'text-white':'text-slate-900')}>{fmtDateBR(form.data_proxima_acao)}</p>
+                          {dataInfo&&<p className={cx('text-[10px] font-semibold',dataInfo.cl)}>{dataInfo.txt}</p>}</>
+                        :<p className={cx('text-sm',dark?'text-slate-500':'text-slate-400')}>Clique para escolher a data…</p>
+                      }
+                    </div>
+                    {form.data_proxima_acao&&<button onClick={e=>{e.stopPropagation();set('data_proxima_acao','')}} className={cx('p-1 rounded-lg',dark?'hover:bg-white/10 text-slate-500':'hover:bg-slate-100 text-slate-400')}><X size={12}/></button>}
+                    <ChevronDown size={13} className={cx('transition-transform shrink-0',showDatePicker&&'rotate-180',dark?'text-slate-500':'text-slate-400')}/>
+                  </button>
+
+                  {showDatePicker&&(
+                    <div className={cx('absolute top-full mt-2 left-0 z-50 rounded-2xl border shadow-2xl p-4 w-72',dark?'bg-slate-900 border-white/10':'bg-white border-slate-200')}>
+                      <div className="flex items-center justify-between mb-3">
+                        <button onClick={()=>setCalDate(new Date(calY,calMo-1))} className={cx('w-7 h-7 rounded-lg flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-500')}><ChevronLeft size={13}/></button>
+                        <p className={cx('text-xs font-bold',dark?'text-white':'text-slate-900')}>{MLONG[calMo]} {calY}</p>
+                        <button onClick={()=>setCalDate(new Date(calY,calMo+1))} className={cx('w-7 h-7 rounded-lg flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-500')}><ChevronRight size={13}/></button>
+                      </div>
+                      <div className="grid grid-cols-7 mb-1">
+                        {['D','S','T','Q','Q','S','S'].map((d,i)=><div key={i} className={cx('text-center text-[10px] font-semibold py-1',dark?'text-slate-600':'text-slate-400')}>{d}</div>)}
+                      </div>
+                      <div className="grid grid-cols-7 gap-0.5">
+                        {calCells.map((day:any,i:number)=>{
+                          if(!day) return <div key={i}/>
+                          const iso=`${calY}-${String(calMo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+                          const isSelected=form.data_proxima_acao===iso
+                          const isToday=iso===new Date().toISOString().slice(0,10)
+                          const isPast=new Date(iso+'T12:00:00')<new Date(new Date().toDateString())
+                          return (
+                            <button key={i} onClick={()=>{if(!isPast){set('data_proxima_acao',iso);setShowDatePicker(false)}}} disabled={isPast}
+                              className={cx('w-full aspect-square rounded-lg text-xs font-semibold flex items-center justify-center transition-all',
+                                isSelected?'bg-emerald-500 text-white':isToday?(dark?'border border-emerald-500/40 text-emerald-400':'border border-emerald-400 text-emerald-700'):isPast?(dark?'text-slate-700 cursor-not-allowed':'text-slate-300 cursor-not-allowed'):(dark?'text-slate-300 hover:bg-white/10':'text-slate-700 hover:bg-slate-100'))}>
+                              {day}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {(form.proxima_acao||form.data_proxima_acao)&&(
+                <div className={cx('p-4 rounded-xl border',dark?'bg-emerald-500/5 border-emerald-500/20':'bg-emerald-50 border-emerald-200')}>
+                  <p className={cx('text-[10px] font-bold uppercase mb-1',dark?'text-emerald-500':'text-emerald-600')}>Resumo da Ação</p>
+                  <p className={cx('text-sm font-semibold',dark?'text-white':'text-slate-900')}>
+                    {form.proxima_acao||'Ação a definir'}
+                    {form.data_proxima_acao&&<span className={cx('ml-2 font-normal text-xs',dark?'text-emerald-400':'text-emerald-600')}>→ {fmtDateBR(form.data_proxima_acao)}{dataInfo&&` (${dataInfo.txt})`}</span>}
+                  </p>
+                  {form.nome&&<p className={cx('text-xs mt-1',dark?'text-slate-500':'text-slate-400')}>{form.nome}{form.empresa&&` · ${form.empresa}`}</p>}
+                </div>
+              )}
+            </div>
           )}
 
           {activeTab==='timeline'&&(
             <div className="space-y-3">
-              {/* Nova nota */}
-              {lead?.id&&(
-                <div className={cx('flex gap-2 p-3 rounded-xl border',dark?'bg-white/[0.03] border-white/10':'bg-slate-50 border-slate-200')}>
-                  <input value={novaNota} onChange={e=>setNovaNota(e.target.value)}
-                    onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),addNota())}
-                    placeholder="Registrar atividade, contato, observação..."
-                    className={cx('flex-1 bg-transparent text-sm outline-none',dark?'text-white placeholder-slate-500':'text-slate-900 placeholder-slate-400')}/>
-                  <button onClick={addNota} disabled={sendingNota||!novaNota.trim()}
-                    className={cx('p-2 rounded-lg transition-all',novaNota.trim()?'bg-emerald-500 text-white hover:bg-emerald-400':'text-slate-500 cursor-not-allowed')}>
-                    <Send size={14}/>
-                  </button>
+              {lead?.id?(
+                <>
+                  <div className={cx('flex gap-2 p-3 rounded-xl border',dark?'bg-white/[0.03] border-white/10':'bg-slate-50 border-slate-200')}>
+                    <input value={novaNota} onChange={e=>setNovaNota(e.target.value)}
+                      onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),addNota())}
+                      placeholder="Registrar contato, observação, atualização..."
+                      className={cx('flex-1 bg-transparent text-sm outline-none',dark?'text-white placeholder-slate-500':'text-slate-900 placeholder-slate-400')}/>
+                    <button onClick={addNota} disabled={sendingNota||!novaNota.trim()}
+                      className={cx('p-2 rounded-lg transition-all shrink-0',novaNota.trim()?'bg-emerald-500 text-white hover:bg-emerald-400':'text-slate-500 cursor-not-allowed')}><Send size={14}/></button>
+                  </div>
+                  {notas.length===0&&<div className={cx('flex flex-col items-center py-8',dark?'text-slate-600':'text-slate-400')}><MessageCircle size={24} className="mb-2 opacity-40"/><p className="text-xs">Nenhuma nota ainda.</p></div>}
+                  <div className="space-y-2">
+                    {notas.map((n:any,i:number)=>(
+                      <div key={n.id} className="flex gap-3">
+                        <div className="flex flex-col items-center">
+                          <div className={cx('w-2 h-2 rounded-full mt-2 shrink-0',dark?'bg-emerald-500':'bg-emerald-400')}/>
+                          {i<notas.length-1&&<div className={cx('flex-1 w-px mt-1',dark?'bg-white/10':'bg-slate-200')}/>}
+                        </div>
+                        <div className={cx('flex-1 p-3 rounded-xl border mb-2',dark?'bg-white/[0.02] border-white/[0.06]':'bg-white border-slate-200')}>
+                          <p className={cx('text-sm',dark?'text-slate-200':'text-slate-700')}>{n.nota}</p>
+                          <p className={cx('text-[10px] mt-1.5',dark?'text-slate-500':'text-slate-400')}>{new Date(n.created_at).toLocaleString('pt-BR')}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ):(
+                <div className={cx('flex flex-col items-center py-8',dark?'text-slate-600':'text-slate-400')}>
+                  <Clock size={24} className="mb-2 opacity-40"/>
+                  <p className="text-xs">Salve o prospect primeiro para adicionar notas.</p>
                 </div>
               )}
-              {!lead?.id&&<p className={cx('text-sm text-center py-4',dark?'text-slate-500':'text-slate-400')}>Salve o prospect primeiro para adicionar notas.</p>}
-              {notas.length===0&&lead?.id&&<p className={cx('text-sm text-center py-4',dark?'text-slate-500':'text-slate-400')}>Nenhuma nota ainda.</p>}
-              {notas.map((n:any)=>(
-                <div key={n.id} className={cx('p-3 rounded-xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-200')}>
-                  <p className={cx('text-sm',dark?'text-slate-200':'text-slate-700')}>{n.nota}</p>
-                  <p className={cx('text-[10px] mt-1.5',dark?'text-slate-500':'text-slate-400')}>{new Date(n.created_at).toLocaleString('pt-BR')}</p>
-                </div>
-              ))}
             </div>
           )}
         </div>
@@ -825,28 +1099,24 @@ function FluxaLeadModal({lead,open,onClose,onSave,onDelete,dark,addToast}:any){
         {/* Footer */}
         <div className={cx('flex items-center justify-between px-5 py-4 border-t shrink-0',dark?'border-white/10':'border-slate-100')}>
           <div>
-            {lead?.id&&(
-              delConfirm
-                ?<div className="flex items-center gap-2">
-                  <span className={cx('text-xs',dark?'text-red-400':'text-red-500')}>Confirmar exclusão?</span>
-                  <button onClick={del} className="text-xs px-2 py-1 bg-red-500 text-white rounded-lg">Sim</button>
-                  <button onClick={()=>setDelConfirm(false)} className={cx('text-xs px-2 py-1 rounded-lg',dark?'bg-white/10 text-slate-300':'bg-slate-100 text-slate-600')}>Não</button>
-                </div>
-                :<button onClick={()=>setDelConfirm(true)} className={cx('flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg',dark?'text-red-400 hover:bg-red-500/10':'text-red-500 hover:bg-red-50')}>
-                  <Trash2 size={13}/> Excluir
-                </button>
+            {lead?.id&&(delConfirm
+              ?<div className="flex items-center gap-2">
+                <span className={cx('text-xs',dark?'text-red-400':'text-red-500')}>Confirmar exclusão?</span>
+                <button onClick={del} className="text-xs px-2 py-1 bg-red-500 text-white rounded-lg">Sim</button>
+                <button onClick={()=>setDelConfirm(false)} className={cx('text-xs px-2 py-1 rounded-lg',dark?'bg-white/10 text-slate-300':'bg-slate-100 text-slate-600')}>Não</button>
+              </div>
+              :<button onClick={()=>setDelConfirm(true)} className={cx('flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg',dark?'text-red-400 hover:bg-red-500/10':'text-red-500 hover:bg-red-50')}><Trash2 size={13}/> Excluir</button>
             )}
           </div>
           <div className="flex gap-2">
             <button onClick={onClose} className={cx('px-4 py-2 rounded-xl text-sm font-semibold',dark?'bg-white/10 text-slate-300 hover:bg-white/15':'bg-slate-100 text-slate-600 hover:bg-slate-200')}>Cancelar</button>
             <button onClick={save} disabled={saving}
-              className="px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-500 text-white hover:bg-emerald-400 transition-colors disabled:opacity-50">
-              {saving?'Salvando...':lead?.id?'Salvar':'Criar Prospect'}
+              className="px-5 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20">
+              {saving?'Salvando...':lead?.id?'Salvar Alterações':'Criar Prospect ✨'}
             </button>
           </div>
         </div>
       </div>
-      <Confirm dark={dark} open={false} onClose={()=>{}} onOk={()=>{}} title="" msg=""/>
     </div>
   )
 }
@@ -1171,6 +1441,358 @@ function FluxaProspects({dark,addToast,onMenu}:any){
 
       <FluxaLeadModal dark={dark} lead={selected} open={!!selected} onClose={()=>setSelected(null)} onSave={onSave} onDelete={onDelete} addToast={addToast}/>
       <FluxaLeadModal dark={dark} lead={null} open={showNew} onClose={()=>setShowNew(false)} onSave={(s:any)=>{setProspects(ps=>[s,...ps]);setShowNew(false)}} onDelete={()=>{}} addToast={addToast}/>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FLÜXA CALENDÁRIO — com vinculação a prospects
+// ══════════════════════════════════════════════════════════════════
+function FluxaCalendario({dark,addToast,onMenu}:any){
+  const [meetings,setMeetings]=useState<any[]>([])
+  const [prospects,setProspects]=useState<any[]>([])
+  const [date,setDate]=useState(new Date())
+  const [showNew,setShowNew]=useState(false)
+  const [sel,setSel]=useState<any>(null)
+  const [delConfirm,setDelConfirm]=useState(false)
+  const [loading,setLoading]=useState(true)
+  const [form,setForm]=useState<any>({event_type:'call',status:'pendente',date:'',time:'09:00',title:'',description:'',prospect_id:''})
+  const [creating,setCreating]=useState(false)
+  const [prospectSearch,setProspectSearch]=useState('')
+  const [showProspectDrop,setShowProspectDrop]=useState(false)
+  const dropRef=useRef<HTMLDivElement>(null)
+
+  useEffect(()=>{
+    Promise.all([
+      sb.from('fluxa_meetings').select('*').order('start_at'),
+      sb.from('fluxa_prospects').select('id,nome,empresa,stage').order('nome'),
+    ]).then(([mr,pr])=>{
+      if(mr.data) setMeetings(mr.data)
+      if(pr.data) setProspects(pr.data)
+      setLoading(false)
+    })
+    const handler=(e:MouseEvent)=>{if(dropRef.current&&!dropRef.current.contains(e.target as Node))setShowProspectDrop(false)}
+    document.addEventListener('mousedown',handler)
+    return()=>document.removeEventListener('mousedown',handler)
+  },[])
+
+  const y=date.getFullYear(),mo=date.getMonth()
+  const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+  const DAYS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+  const fd=new Date(y,mo,1).getDay(),dim=new Date(y,mo+1,0).getDate()
+  const cells=[...Array(fd).fill(null),...Array.from({length:dim},(_:any,i:number)=>i+1)]
+  while(cells.length%7!==0) cells.push(null)
+  const weeks=Array.from({length:cells.length/7},(_:any,i:number)=>cells.slice(i*7,(i+1)*7))
+  const today=new Date()
+
+  const getMeetings=(day:number)=>{
+    const ds=`${y}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+    return meetings.filter(mt=>mt.start_at?.startsWith(ds))
+  }
+
+  const openNew=(day?:number)=>{
+    const dateStr=day?`${y}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`:new Date().toISOString().split('T')[0]
+    setForm({event_type:'call',status:'pendente',date:dateStr,time:'09:00',title:'',description:'',prospect_id:''})
+    setProspectSearch('');setShowProspectDrop(false);setShowNew(true)
+  }
+
+  const create=async()=>{
+    if(!form.title?.trim()){addToast('Título obrigatório.','error');return}
+    if(!form.date){addToast('Selecione a data.','error');return}
+    setCreating(true)
+    const prospect=form.prospect_id?prospects.find((p:any)=>p.id===form.prospect_id):null
+    const start_at=`${form.date}T${form.time||'09:00'}:00`
+    const{data,error}=await sb.from('fluxa_meetings').insert({
+      title:form.title.trim(),event_type:form.event_type,status:form.status,
+      start_at,description:form.description||null,
+      prospect_id:form.prospect_id||null,
+      prospect_name:prospect?.nome||null,
+      prospect_empresa:prospect?.empresa||null,
+      created_at:new Date().toISOString()
+    }).select().single()
+    setCreating(false)
+    if(error){addToast('Erro: '+error.message,'error');return}
+    if(data) setMeetings(ms=>[...ms,data])
+    setShowNew(false);addToast('Evento agendado! 📅','success')
+  }
+
+  const deleteMeeting=async()=>{
+    if(!sel) return
+    await sb.from('fluxa_meetings').delete().eq('id',sel.id)
+    setMeetings(ms=>ms.filter(m=>m.id!==sel.id))
+    setSel(null);setDelConfirm(false);addToast('Evento apagado.','success')
+  }
+
+  const updateStatus=async(id:string,status:string)=>{
+    await sb.from('fluxa_meetings').update({status,updated_at:new Date().toISOString()}).eq('id',id)
+    setMeetings(ms=>ms.map(mt=>mt.id===id?{...mt,status}:mt))
+    setSel((s:any)=>s?{...s,status}:s)
+    addToast(status==='confirmado'?'Confirmado! ✅':'Cancelado.','success')
+  }
+
+  // Tipos de evento para o calendário Flüxa
+  const ET:any={
+    call:    {label:'Call',    dot:'#34D399',cl:dark?'bg-emerald-500/20 text-emerald-300 border-emerald-500/30':'bg-emerald-100 text-emerald-700 border-emerald-300'},
+    reuniao: {label:'Reunião', dot:'#A78BFA',cl:dark?'bg-violet-500/20 text-violet-300 border-violet-500/30':'bg-violet-100 text-violet-700 border-violet-300'},
+    followup:{label:'Follow-up',dot:'#60A5FA',cl:dark?'bg-blue-500/20 text-blue-300 border-blue-500/30':'bg-blue-100 text-blue-700 border-blue-300'},
+    demo:    {label:'Demo',    dot:'#FB923C',cl:dark?'bg-orange-500/20 text-orange-300 border-orange-500/30':'bg-orange-100 text-orange-700 border-orange-300'},
+  }
+  const SC:any={confirmado:'text-emerald-400',pendente:'text-amber-400',cancelado:'text-red-400'}
+  const SB:any={confirmado:'bg-emerald-500/15 border-emerald-500/30',pendente:'bg-amber-500/15 border-amber-500/30',cancelado:'bg-red-500/15 border-red-500/30'}
+
+  const filteredProspects=prospects.filter((p:any)=>
+    !prospectSearch||p.nome?.toLowerCase().includes(prospectSearch.toLowerCase())||p.empresa?.toLowerCase().includes(prospectSearch.toLowerCase())
+  ).slice(0,6)
+
+  const upcoming=[...meetings]
+    .filter(m=>new Date(m.start_at)>=new Date(today.toDateString()))
+    .sort((a,b)=>new Date(a.start_at).getTime()-new Date(b.start_at).getTime())
+    .slice(0,8)
+
+  const selProspect=sel?.prospect_id?prospects.find((p:any)=>p.id===sel.prospect_id):null
+  const stageOfSel=selProspect?FUNIL_STAGES.find(s=>s.id===selProspect.stage):null
+
+  return (
+    <div className="flex-1 overflow-hidden flex flex-col">
+      <div className={cx('flex items-center justify-between px-5 py-4 border-b sticky top-0 z-10',dark?'bg-slate-950/80 border-white/[0.06] backdrop-blur-md':'bg-white/80 border-slate-100 backdrop-blur-md')}>
+        <div className="flex items-center gap-3">
+          <button onClick={onMenu} className={cx('sm:hidden p-2 rounded-xl',dark?'hover:bg-white/10':'hover:bg-slate-100')}><Menu size={16} className={dark?'text-slate-400':'text-slate-500'}/></button>
+          <div>
+            <h1 className={cx('text-base font-black',dark?'text-white':'text-slate-900')}>Calendário</h1>
+            <p className={cx('text-[11px]',dark?'text-slate-500':'text-slate-400')}>{meetings.length} evento{meetings.length!==1?'s':''} agendados</p>
+          </div>
+        </div>
+        <button onClick={()=>openNew()} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-teal-500 transition-all active:scale-95">
+          <Plus size={13}/>Agendar Call
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        {/* Grade do calendário */}
+        <div className={cx('rounded-2xl border overflow-hidden',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+          <div className={cx('flex items-center justify-between px-5 py-3 border-b',dark?'border-white/[0.06]':'border-slate-100')}>
+            <button onClick={()=>setDate(new Date(y,mo-1))} className={cx('w-8 h-8 rounded-xl flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-600')}><ChevronLeft size={15}/></button>
+            <p className={cx('text-sm font-bold',dark?'text-white':'text-slate-900')}>{MONTHS[mo]} {y}</p>
+            <button onClick={()=>setDate(new Date(y,mo+1))} className={cx('w-8 h-8 rounded-xl flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-600')}><ChevronRight size={15}/></button>
+          </div>
+          <div className={cx('grid grid-cols-7 border-b',dark?'border-white/[0.05]':'border-slate-100')}>
+            {DAYS.map((d,i)=><div key={i} className={cx('py-2 text-center text-[10px] font-semibold',dark?'text-slate-500':'text-slate-400')}>{d}</div>)}
+          </div>
+          {weeks.map((week,wi)=>(
+            <div key={wi} className={cx('grid grid-cols-7 border-b last:border-0',dark?'border-white/[0.04]':'border-slate-100')}>
+              {week.map((day:any,di:number)=>{
+                const dm=day?getMeetings(day):[]
+                const isToday=day&&today.getDate()===day&&today.getMonth()===mo&&today.getFullYear()===y
+                const isPast=day&&new Date(y,mo,day)<new Date(today.toDateString())
+                return (
+                  <div key={di} onClick={()=>day&&!isPast&&openNew(day)}
+                    className={cx('min-h-[64px] p-1.5 border-r last:border-0 transition-colors',
+                      dark?'border-white/[0.04]':'border-slate-100',
+                      !day?'opacity-0 pointer-events-none':'',
+                      day&&!isPast?(dark?'cursor-pointer hover:bg-white/[0.03]':'cursor-pointer hover:bg-slate-50'):'',
+                      isPast&&(dark?'opacity-40':'opacity-50'))}>
+                    {day&&<>
+                      <span className={cx('text-[11px] font-bold w-6 h-6 flex items-center justify-center rounded-full mb-0.5 mx-auto',isToday?'bg-emerald-500 text-white':(dark?'text-slate-500':'text-slate-400'))}>{day}</span>
+                      {dm.slice(0,2).map((mt:any)=>(
+                        <button key={mt.id} onClick={e=>{e.stopPropagation();setSel(mt);setDelConfirm(false)}}
+                          className={cx('w-full text-left text-[8px] font-semibold px-1.5 py-0.5 rounded-md border truncate mb-0.5 flex items-center gap-1',ET[mt.event_type]?.cl||ET.call.cl)}>
+                          <div className="w-1 h-1 rounded-full shrink-0" style={{background:ET[mt.event_type]?.dot||'#34D399'}}/>
+                          <span className="truncate">{mt.prospect_name||mt.title}</span>
+                        </button>
+                      ))}
+                      {dm.length>2&&<p className={cx('text-[8px] px-1 font-medium',dark?'text-slate-500':'text-slate-400')}>+{dm.length-2}</p>}
+                    </>}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* Próximos eventos */}
+        <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+          <div className="flex items-center justify-between mb-4">
+            <p className={cx('text-sm font-bold',dark?'text-white':'text-slate-900')}>Próximas Calls & Eventos</p>
+            <span className={cx('text-[10px] font-semibold px-2 py-1 rounded-lg',dark?'bg-white/5 text-slate-500':'bg-slate-100 text-slate-500')}>{upcoming.length} próximos</span>
+          </div>
+          {loading?<Sk className="h-32"/>:(
+            <div className="space-y-2">
+              {upcoming.map(mt=>{
+                const et=ET[mt.event_type]||ET.call
+                const dtStr=mt.start_at?.replace('T',' ').slice(0,16)
+                return (
+                  <button key={mt.id} onClick={()=>{setSel(mt);setDelConfirm(false)}}
+                    className={cx('w-full text-left p-3 rounded-xl border transition-all active:scale-[0.99]',dark?'border-white/[0.06] hover:border-white/20 hover:bg-white/[0.03]':'border-slate-100 hover:border-slate-200 hover:bg-slate-50')}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-1.5 self-stretch rounded-full shrink-0" style={{background:et.dot}}/>
+                      <div className="flex-1 min-w-0">
+                        <p className={cx('text-xs font-bold truncate',dark?'text-white':'text-slate-900')}>{mt.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className={cx('text-[10px]',dark?'text-slate-500':'text-slate-400')}>{et.label} · {dtStr}</span>
+                          {mt.prospect_name&&(
+                            <span className={cx('text-[10px] font-semibold flex items-center gap-1',dark?'text-emerald-400':'text-emerald-600')}>
+                              <User size={9}/>{mt.prospect_name}{mt.prospect_empresa&&` · ${mt.prospect_empresa}`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className={cx('text-[9px] font-bold px-2 py-0.5 rounded-full border shrink-0',SC[mt.status],SB[mt.status])}>{mt.status}</span>
+                    </div>
+                  </button>
+                )
+              })}
+              {upcoming.length===0&&<p className={cx('text-xs text-center py-6',dark?'text-slate-600':'text-slate-400')}>Nenhum evento próximo 🎉</p>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Modal Criar Evento ── */}
+      <Modal dark={dark} open={showNew} onClose={()=>setShowNew(false)} title="Agendar Evento" size="md">
+        <div className="space-y-4">
+          {/* Tipo de evento */}
+          <div>
+            <label className={cx('text-xs font-semibold mb-2 block',dark?'text-slate-400':'text-slate-500')}>Tipo de Evento</label>
+            <div className="grid grid-cols-4 gap-2">
+              {Object.entries(ET).map(([v,et]:any)=>(
+                <button key={v} onClick={()=>setForm((f:any)=>({...f,event_type:v}))}
+                  className={cx('py-2.5 rounded-xl border text-xs font-semibold transition-all active:scale-95 flex flex-col items-center gap-1',
+                    form.event_type===v?et.cl:(dark?'border-white/10 text-slate-500 hover:border-white/20':'border-slate-200 text-slate-500 hover:border-slate-300'))}>
+                  <div className="w-2 h-2 rounded-full" style={{background:et.dot}}/>
+                  {et.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Field dark={dark} label="Título *" value={form.title} onChange={(v:string)=>setForm((f:any)=>({...f,title:v}))} placeholder="Ex: Call de diagnóstico" required/>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field dark={dark} label="Data *" value={form.date} onChange={(v:string)=>setForm((f:any)=>({...f,date:v}))} type="date" required icon={Calendar}/>
+            <Field dark={dark} label="Horário" value={form.time} onChange={(v:string)=>setForm((f:any)=>({...f,time:v}))} type="time" icon={Bell}/>
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className={cx('text-xs font-semibold mb-2 block',dark?'text-slate-400':'text-slate-500')}>Status</label>
+            <div className="flex gap-2">
+              {[{v:'pendente',l:'Pendente'},{v:'confirmado',l:'Confirmado'},{v:'cancelado',l:'Cancelado'}].map(({v,l})=>(
+                <button key={v} onClick={()=>setForm((f:any)=>({...f,status:v}))}
+                  className={cx('flex-1 py-2 rounded-xl border text-xs font-semibold transition-all',
+                    form.status===v?(v==='confirmado'?'bg-emerald-500/20 border-emerald-500/40 text-emerald-400':v==='cancelado'?'bg-red-500/20 border-red-500/40 text-red-400':'bg-amber-500/20 border-amber-500/40 text-amber-400'):(dark?'border-white/10 text-slate-500':'border-slate-200 text-slate-500'))}>{l}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Vincular prospect */}
+          <div ref={dropRef} className="relative">
+            <label className={cx('text-xs font-semibold mb-1.5 block',dark?'text-slate-400':'text-slate-500')}>
+              Vincular Lead / Prospect <span className={cx('font-normal',dark?'text-slate-600':'text-slate-400')}>(opcional)</span>
+            </label>
+            {form.prospect_id?(
+              <div className={cx('flex items-center gap-3 px-3 py-2.5 rounded-xl border',dark?'bg-emerald-500/5 border-emerald-500/30':'bg-emerald-50 border-emerald-200')}>
+                <div className={cx('w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0',dark?'bg-emerald-500/20 text-emerald-400':'bg-emerald-200 text-emerald-700')}>
+                  {prospects.find((p:any)=>p.id===form.prospect_id)?.nome?.[0]?.toUpperCase()||'?'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={cx('text-xs font-bold',dark?'text-white':'text-slate-900')}>{prospects.find((p:any)=>p.id===form.prospect_id)?.nome}</p>
+                  <p className={cx('text-[10px]',dark?'text-slate-500':'text-slate-400')}>{prospects.find((p:any)=>p.id===form.prospect_id)?.empresa}</p>
+                </div>
+                <button onClick={()=>setForm((f:any)=>({...f,prospect_id:''}))} className={cx('p-1 rounded-lg',dark?'hover:bg-white/10 text-slate-500':'hover:bg-slate-100 text-slate-400')}><X size={12}/></button>
+              </div>
+            ):(
+              <div className="relative">
+                <Search size={13} className={cx('absolute left-3 top-1/2 -translate-y-1/2',dark?'text-slate-500':'text-slate-400')}/>
+                <input value={prospectSearch} onChange={e=>{setProspectSearch(e.target.value);setShowProspectDrop(true)}} onFocus={()=>setShowProspectDrop(true)}
+                  placeholder="Buscar prospect por nome ou empresa..."
+                  className={cx('w-full pl-8 pr-3 py-2.5 rounded-xl border text-sm focus:outline-none',dark?'bg-white/[0.04] border-white/10 text-white placeholder-slate-500 focus:border-emerald-500/50':'bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-emerald-400')}/>
+                {showProspectDrop&&filteredProspects.length>0&&(
+                  <div className={cx('absolute top-full left-0 right-0 mt-1 rounded-xl border shadow-xl z-50 overflow-hidden',dark?'bg-slate-900 border-white/10':'bg-white border-slate-200')}>
+                    {filteredProspects.map((p:any)=>{
+                      const stg=FUNIL_STAGES.find(s=>s.id===p.stage)
+                      return (
+                        <button key={p.id} onClick={()=>{setForm((f:any)=>({...f,prospect_id:p.id,title:form.title||`Call com ${p.nome}`}));setProspectSearch('');setShowProspectDrop(false)}}
+                          className={cx('w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors',dark?'hover:bg-white/5':'hover:bg-slate-50')}>
+                          <div className={cx('w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0',stg?.bg||'bg-slate-100',stg?.text||'text-slate-700')}>
+                            {p.nome?.[0]?.toUpperCase()||'?'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={cx('text-xs font-semibold truncate',dark?'text-white':'text-slate-900')}>{p.nome}</p>
+                            <p className={cx('text-[10px]',dark?'text-slate-500':'text-slate-400')}>{p.empresa||'—'} · {stg?.label||p.stage}</p>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <Textarea dark={dark} label="Observações" value={form.description} onChange={(v:string)=>setForm((f:any)=>({...f,description:v}))} placeholder="Pauta, objetivos da call..." rows={2}/>
+
+          <div className="flex gap-2 justify-end pt-1">
+            <button onClick={()=>setShowNew(false)} className={cx('px-4 py-2.5 rounded-xl border text-sm',dark?'border-white/10 text-slate-400':'border-slate-200 text-slate-600')}>Cancelar</button>
+            <button onClick={create} disabled={creating}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-sm font-bold disabled:opacity-60 transition-all shadow-lg shadow-emerald-500/20">
+              {creating?'Agendando...':'Agendar ✓'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Modal Detalhes ── */}
+      <Modal dark={dark} open={!!sel} onClose={()=>{setSel(null);setDelConfirm(false)}} title="Detalhes do Evento" size="sm">
+        {sel&&(()=>{
+          const et=ET[sel.event_type]||ET.call
+          return (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={cx('px-2.5 py-1 rounded-lg border text-xs font-semibold',et.cl)}>{et.label}</span>
+                <span className={cx('px-2.5 py-1 rounded-lg border text-xs font-semibold',SC[sel.status],SB[sel.status])}>{sel.status}</span>
+              </div>
+
+              <div>
+                <p className={cx('text-base font-black',dark?'text-white':'text-slate-900')}>{sel.title}</p>
+                <p className={cx('text-xs mt-0.5 flex items-center gap-1.5',dark?'text-slate-400':'text-slate-500')}>
+                  <Calendar size={11}/>{sel.start_at?.replace('T',' ').slice(0,16)}
+                </p>
+              </div>
+
+              {(sel.prospect_id||sel.prospect_name)&&(
+                <div className={cx('flex items-center gap-3 p-3 rounded-xl border',dark?'bg-emerald-500/5 border-emerald-500/20':'bg-emerald-50 border-emerald-200')}>
+                  <div className={cx('w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black shrink-0',dark?'bg-emerald-500/20 text-emerald-300':'bg-emerald-200 text-emerald-700')}>
+                    {sel.prospect_name?.[0]?.toUpperCase()||'?'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={cx('text-sm font-bold',dark?'text-emerald-300':'text-emerald-700')}>{sel.prospect_name}</p>
+                    {sel.prospect_empresa&&<p className={cx('text-xs',dark?'text-slate-500':'text-slate-400')}>{sel.prospect_empresa}</p>}
+                    {stageOfSel&&<span className={cx('text-[10px] font-semibold px-1.5 py-0.5 rounded-md border',stageOfSel.bg,stageOfSel.text,stageOfSel.border)}>{stageOfSel.label}</span>}
+                  </div>
+                </div>
+              )}
+
+              {sel.description&&(
+                <p className={cx('text-xs leading-relaxed p-3 rounded-xl border',dark?'bg-white/[0.02] border-white/[0.06] text-slate-400':'bg-slate-50 border-slate-200 text-slate-600')}>{sel.description}</p>
+              )}
+
+              {sel.status!=='confirmado'&&<button onClick={()=>updateStatus(sel.id,'confirmado')} className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-bold transition-all">✓ Confirmar evento</button>}
+              {sel.status!=='cancelado'&&<button onClick={()=>updateStatus(sel.id,'cancelado')} className={cx('w-full py-2.5 rounded-xl border text-sm font-medium transition-all active:scale-95',dark?'border-slate-700 text-slate-400 hover:bg-white/5':'border-slate-200 text-slate-600 hover:bg-slate-50')}>Marcar como cancelado</button>}
+
+              {!delConfirm
+                ?<button onClick={()=>setDelConfirm(true)} className="w-full py-2.5 rounded-xl border border-red-500/20 text-red-400 text-sm hover:bg-red-500/10 active:scale-95 transition-all flex items-center justify-center gap-2"><Trash2 size={13}/>Apagar evento</button>
+                :<div className={cx('p-3 rounded-xl border',dark?'border-red-500/20 bg-red-500/5':'border-red-200 bg-red-50')}>
+                  <p className={cx('text-xs mb-3 text-center',dark?'text-red-300':'text-red-600')}>Tem certeza?</p>
+                  <div className="flex gap-2">
+                    <button onClick={()=>setDelConfirm(false)} className={cx('flex-1 py-2 rounded-lg border text-xs',dark?'border-white/10 text-slate-400':'border-slate-200 text-slate-600')}>Não</button>
+                    <button onClick={deleteMeeting} className="flex-1 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-bold active:scale-95">Apagar</button>
+                  </div>
+                </div>
+              }
+            </div>
+          )
+        })()}
+      </Modal>
     </div>
   )
 }
@@ -2710,6 +3332,7 @@ export default function App(){
     hub_dashboard:    <HubDashboard dark={dark} addToast={addToast} onMenu={()=>setSideOpen(true)}/>,
     fluxa_funil:      <FluxaFunil dark={dark} addToast={addToast} onMenu={()=>setSideOpen(true)}/>,
     fluxa_prospects:  <FluxaProspects dark={dark} addToast={addToast} onMenu={()=>setSideOpen(true)}/>,
+    fluxa_calendario: <FluxaCalendario dark={dark} addToast={addToast} onMenu={()=>setSideOpen(true)}/>,
     hub_empresas:     <HubEmpresas dark={dark} onMenu={()=>setSideOpen(true)}/>,
     hub_criar:        <HubCriarEmpresa dark={dark} addToast={addToast} setTab={setTab} onMenu={()=>setSideOpen(true)}/>,
     // Normal CRM pages
