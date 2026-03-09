@@ -535,8 +535,9 @@ function HubDashboard({dark,addToast}:any){
     })
   },[])
 
-  const active=companies.filter(c=>c.crm_active)
-  const totalUsers=users.length
+  const active=companies.filter(c=>c.crm_active&&c.company_slug!==FLUXA_SLUG)
+  const total=companies.filter(c=>c.company_slug!==FLUXA_SLUG)
+  const totalUsers=users.filter(u=>u.company_id!==companies.find((c:any)=>c.company_slug===FLUXA_SLUG)?.id).length
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -546,7 +547,7 @@ function HubDashboard({dark,addToast}:any){
           {[
             {label:'Empresas Ativas',val:String(active.length),icon:Building2,iconBg:dark?'bg-emerald-500/20':'bg-emerald-100',iconCl:dark?'text-emerald-400':'text-emerald-700',border:dark?'border-white/[0.07]':'border-emerald-200'},
             {label:'Total Usuários', val:String(totalUsers),   icon:Users,    iconBg:dark?'bg-blue-500/20':'bg-blue-100',   iconCl:dark?'text-blue-400':'text-blue-700',   border:dark?'border-white/[0.07]':'border-blue-200'},
-            {label:'Total Empresas', val:String(companies.length),icon:Globe, iconBg:dark?'bg-violet-500/20':'bg-violet-100',iconCl:dark?'text-violet-400':'text-violet-700',border:dark?'border-white/[0.07]':'border-violet-200'},
+            {label:'Total Empresas', val:String(total.length),icon:Globe, iconBg:dark?'bg-violet-500/20':'bg-violet-100',iconCl:dark?'text-violet-400':'text-violet-700',border:dark?'border-white/[0.07]':'border-violet-200'},
             {label:'Leads Totais',   val:'—',                  icon:BarChart2,iconBg:dark?'bg-amber-500/20':'bg-amber-100', iconCl:dark?'text-amber-400':'text-amber-700', border:dark?'border-white/[0.07]':'border-amber-200'},
           ].map(({label,val,icon:Icon,iconBg,iconCl,border})=>(
             <div key={label} className={cx('p-4 rounded-2xl border',dark?'bg-white/[0.03]':'bg-white shadow-sm',border)}>
@@ -560,7 +561,7 @@ function HubDashboard({dark,addToast}:any){
           <p className={cx('text-sm font-semibold mb-3',T.text(dark))}>Empresas Recentes</p>
           {loading?<Sk className="h-24"/>:(
             <div className="space-y-2">
-              {companies.slice(0,5).map(c=>(
+              {companies.filter(c=>c.company_slug!==FLUXA_SLUG).slice(0,5).map(c=>(
                 <div key={c.id} className={cx('flex items-center gap-3 p-2.5 rounded-xl',T.row(dark))}>
                   <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shrink-0"><Zap size={12} className="text-white"/></div>
                   <div className="flex-1 min-w-0">
@@ -605,13 +606,15 @@ function HubEmpresas({dark,addToast}:any){
     setDelConfirm(null);addToast('Empresa apagada.','success')
   }
 
+  const filtered=companies.filter(c=>c.company_slug!==FLUXA_SLUG)
+
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
-      <Header dark={dark} title="Empresas Cadastradas" subtitle={`${companies.length} parceiros`}/>
+      <Header dark={dark} title="Empresas Cadastradas" subtitle={`${filtered.length} parceiros`}/>
       <div className="flex-1 overflow-y-auto p-4">
         {loading?<div className="space-y-2">{[1,2,3].map(i=><Sk key={i} className="h-16 rounded-2xl"/>)}</div>:(
           <div className="space-y-2">
-            {companies.map((c,i)=>(
+            {filtered.map((c,i)=>(
               <div key={c.id} className={cx('flex items-center gap-4 p-4 rounded-2xl border',T.card(dark))}>
                 <span className={cx('w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0',dark?'bg-white/10 text-slate-400':'bg-slate-100 text-slate-600')}>{i+1}</span>
                 <div className={cx('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',dark?'bg-emerald-500/15':'bg-emerald-100')}>
@@ -623,12 +626,10 @@ function HubEmpresas({dark,addToast}:any){
                   <p className={cx('text-[10px]',T.muted(dark))}>{c.created_at?.split('T')[0]}</p>
                 </div>
                 <span className={cx('text-xs px-2.5 py-1 rounded-full border font-medium shrink-0',c.crm_active?'bg-emerald-500/15 text-emerald-600 border-emerald-400/30':'bg-red-500/15 text-red-500 border-red-400/30')}>{c.crm_active?'Ativa':'Inativa'}</span>
-                {c.company_slug!==FLUXA_SLUG&&(
-                  <button onClick={()=>setDelConfirm(c)} className={cx('w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',dark?'hover:bg-red-500/10 text-slate-500 hover:text-red-400':'hover:bg-red-50 text-slate-400 hover:text-red-500')}><Trash2 size={14}/></button>
-                )}
+                <button onClick={()=>setDelConfirm(c)} className={cx('w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',dark?'hover:bg-red-500/10 text-slate-500 hover:text-red-400':'hover:bg-red-50 text-slate-400 hover:text-red-500')}><Trash2 size={14}/></button>
               </div>
             ))}
-            {companies.length===0&&<p className={cx('text-center text-sm py-8',T.muted(dark))}>Nenhuma empresa cadastrada.</p>}
+            {filtered.length===0&&<p className={cx('text-center text-sm py-8',T.muted(dark))}>Nenhuma empresa cadastrada.</p>}
           </div>
         )}
       </div>
@@ -1620,6 +1621,148 @@ function Suporte({company,user,addToast,dark}:any){
 }
 
 // ══════════════════════════════════════════════════════════════════
+// TUTORIAL
+// ══════════════════════════════════════════════════════════════════
+const TUTORIAL_STEPS_CRM = [
+  {
+    icon: LayoutDashboard,
+    color: 'from-blue-500 to-blue-600',
+    title: 'Dashboard',
+    desc: 'Aqui você vê um resumo completo: total de leads, taxa de conversão, ticket médio e evolução ao longo dos meses. Tudo em tempo real.',
+  },
+  {
+    icon: GitBranch,
+    color: 'from-violet-500 to-violet-600',
+    title: 'Pipeline',
+    desc: 'Arraste os leads entre as colunas para avançar nas etapas de venda. Renomeie as colunas clicando no lápis. Filtre por responsável no topo.',
+  },
+  {
+    icon: Users,
+    color: 'from-emerald-500 to-teal-600',
+    title: 'Leads',
+    desc: 'Lista completa de todos os seus leads com busca, filtros e ordenação. Clique em qualquer lead para editar, adicionar anotações e acompanhar o status.',
+  },
+  {
+    icon: Calendar,
+    color: 'from-amber-500 to-orange-500',
+    title: 'Calendário',
+    desc: 'Agende reuniões, visitas e instalações. Visualize os eventos no calendário e confirme ou cancele diretamente por aqui.',
+  },
+  {
+    icon: Shield,
+    color: 'from-pink-500 to-rose-500',
+    title: 'Colaboradores',
+    desc: 'Cadastre sua equipe, defina cargos (Colaborador, Gestor ou Founder) e gerencie quem tem acesso ao quê dentro do CRM.',
+  },
+  {
+    icon: Settings,
+    color: 'from-slate-500 to-slate-600',
+    title: 'Configurações',
+    desc: 'Personalize seu perfil, foto, nome e altere sua senha. Gestores também podem editar o nome e logo da empresa.',
+  },
+]
+
+const TUTORIAL_STEPS_HUB = [
+  {
+    icon: LayoutDashboard,
+    color: 'from-blue-500 to-blue-600',
+    title: 'Hub Dashboard',
+    desc: 'Visão geral de todas as empresas cadastradas na plataforma: quantas estão ativas, total de usuários e empresas recentes.',
+  },
+  {
+    icon: Globe,
+    color: 'from-emerald-500 to-teal-600',
+    title: 'Empresas Cadastradas',
+    desc: 'Lista completa de todos os parceiros. Você pode visualizar o status de cada empresa e apagá-la com todos os dados quando necessário.',
+  },
+  {
+    icon: Plus,
+    color: 'from-violet-500 to-violet-600',
+    title: 'Criar Empresa',
+    desc: 'Cadastre um novo parceiro diretamente pelo Hub, sem precisar de SQL. Informe o nome, slug de acesso e crie o gestor principal da empresa.',
+  },
+  {
+    icon: Shield,
+    color: 'from-amber-500 to-orange-500',
+    title: 'Colaboradores do Hub',
+    desc: 'Gerencie os membros da equipe Flüxa com acesso ao Hub de controle.',
+  },
+]
+
+function Tutorial({isHub,dark,onFinish}:{isHub:boolean,dark:boolean,onFinish:()=>void}){
+  const [step,setStep]=useState(0)
+  const steps=isHub?TUTORIAL_STEPS_HUB:TUTORIAL_STEPS_CRM
+  const current=steps[step]
+  const Icon=current.icon
+  const isLast=step===steps.length-1
+
+  return (
+    <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"/>
+      <div className={cx('relative w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden border shadow-2xl',T.modal(dark))}>
+        {/* Progress bar */}
+        <div className={cx('h-1 w-full',dark?'bg-white/10':'bg-slate-200')}>
+          <div className="h-1 bg-emerald-500 transition-all duration-500 rounded-full"
+            style={{width:`${((step+1)/steps.length)*100}%`}}/>
+        </div>
+
+        {/* Content */}
+        <div className="p-8 flex flex-col items-center text-center">
+          {/* Icon */}
+          <div className={cx('w-20 h-20 rounded-3xl bg-gradient-to-br flex items-center justify-center mb-6 shadow-xl',current.color)}>
+            <Icon size={36} className="text-white"/>
+          </div>
+
+          {/* Step counter */}
+          <p className={cx('text-xs font-semibold mb-2 tracking-widest uppercase',T.muted(dark))}>
+            {step+1} de {steps.length}
+          </p>
+
+          {/* Title */}
+          <h2 className={cx('text-2xl font-bold mb-3',T.text(dark))}>{current.title}</h2>
+
+          {/* Description */}
+          <p className={cx('text-sm leading-relaxed mb-8',T.sub(dark))}>{current.desc}</p>
+
+          {/* Dots */}
+          <div className="flex gap-2 mb-8">
+            {steps.map((_,i)=>(
+              <button key={i} onClick={()=>setStep(i)}
+                className={cx('rounded-full transition-all duration-300',
+                  i===step?'w-6 h-2.5 bg-emerald-500':'w-2.5 h-2.5',
+                  i<step?(dark?'bg-emerald-500/40':'bg-emerald-400'):(dark?'bg-white/20':'bg-slate-300')
+                )}/>
+            ))}
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 w-full">
+            {step>0&&(
+              <button onClick={()=>setStep(s=>s-1)}
+                className={cx('flex-1 py-3 rounded-xl border text-sm font-medium transition-all active:scale-95',
+                  dark?'border-white/10 text-slate-400 hover:bg-white/5':'border-slate-300 text-slate-600 hover:bg-slate-50')}>
+                Anterior
+              </button>
+            )}
+            <button onClick={isLast?onFinish:()=>setStep(s=>s+1)}
+              className="flex-1 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold shadow-lg shadow-emerald-500/25 active:scale-95 transition-all">
+              {isLast?'Começar a usar! 🚀':'Próximo'}
+            </button>
+          </div>
+
+          {/* Skip */}
+          {!isLast&&(
+            <button onClick={onFinish} className={cx('mt-4 text-xs transition-colors',T.muted(dark),'hover:text-slate-300')}>
+              Pular tutorial
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
 // APP ROOT
 // ══════════════════════════════════════════════════════════════════
 export default function App(){
@@ -1632,6 +1775,7 @@ export default function App(){
   const [funnels,setFunnels]=useState<any[]>([])
   const [users,setUsers]=useState<any[]>([])
   const [logoutConfirm,setLogoutConfirm]=useState(false)
+  const [showTutorial,setShowTutorial]=useState(false)
   const {toasts,add:addToast,rm:rmToast}=useToast()
 
   // Restore session from localStorage on mount
@@ -1682,7 +1826,15 @@ export default function App(){
     setSession({company,user})
     loadData(company.id)
     setTab(isHub?'hub_dashboard':'dashboard')
+    // Show tutorial only on first login ever
+    const tutorialKey=`fluxa_tutorial_${user.id}`
+    if(!localStorage.getItem(tutorialKey)) setShowTutorial(true)
     addToast(`Bem-vindo, ${user.display_name||user.full_name}! 👋`,'success')
+  }
+
+  const finishTutorial=()=>{
+    if(session) localStorage.setItem(`fluxa_tutorial_${session.user.id}`,'done')
+    setShowTutorial(false)
   }
   const doLogout=()=>{
     setSession(null);setLeads([]);setFunnels([]);setUsers([]);setTab('dashboard')
@@ -1723,6 +1875,7 @@ export default function App(){
       </main>
       <Toast toasts={toasts} rm={rmToast}/>
       <Confirm dark={dark} open={logoutConfirm} onClose={()=>setLogoutConfirm(false)} onOk={doLogout} title="Sair da conta" msg="Tem certeza que deseja sair? Você precisará fazer login novamente."/>
+      {showTutorial&&<Tutorial isHub={isHub} dark={dark} onFinish={finishTutorial}/>}
     </div>
   )
 }
