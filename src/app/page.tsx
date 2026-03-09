@@ -203,8 +203,22 @@ function Login({onLogin}:any){
     try{
       const {data:co}=await sb.from('companies').select('*').eq('company_slug',slug.trim().toLowerCase()).eq('crm_active',true).single()
       if(!co){setErr('Empresa não encontrada.');setLoading(false);return}
+
+      // Tentativa normal: usuário da própria empresa
       const {data:usr}=await sb.from('users').select('*').eq('company_id',co.id).eq('username',user.trim().toLowerCase()).eq('password_hash',pass).eq('active',true).single()
       if(usr){onLogin({company:co,user:usr});setLoading(false);return}
+
+      // Superadmin: verifica se é um founder da Flüxa tentando acessar outra empresa
+      const {data:fluxaCo}=await sb.from('companies').select('*').eq('company_slug','fluxa').single()
+      if(fluxaCo){
+        const {data:superUser}=await sb.from('users').select('*').eq('company_id',fluxaCo.id).eq('username',user.trim().toLowerCase()).eq('password_hash',pass).eq('role','founder').eq('active',true).single()
+        if(superUser){
+          // Loga na empresa alvo mas com dados do superadmin — invisível nos colaboradores
+          onLogin({company:co,user:{...superUser,_superadmin:true,_superadmin_company:fluxaCo}})
+          setLoading(false);return
+        }
+      }
+
       setErr('Usuário ou senha inválidos.')
     }catch{setErr('Erro de conexão.')}
     setLoading(false)
@@ -378,7 +392,10 @@ function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDa
           <Av name={user.display_name||user.full_name} size="sm" url={user.avatar_url}/>
           <div className="flex-1 min-w-0">
             <p className={cx('text-xs font-semibold truncate',T.text(dark))}>{user.display_name||user.full_name}</p>
-            <p className={cx('text-[10px] font-medium',RC[user.role])}>{RL[user.role]}</p>
+            {user._superadmin
+              ? <p className="text-[10px] font-medium text-emerald-400">⚡ Superadmin</p>
+              : <p className={cx('text-[10px] font-medium',RC[user.role])}>{RL[user.role]}</p>
+            }
           </div>
           <button onClick={onLogout} className={cx('transition-colors',dark?'text-slate-600 hover:text-red-400':'text-slate-400 hover:text-red-500')}><LogOut size={14}/></button>
         </div>
@@ -1241,8 +1258,17 @@ function Colaboradores({company,user,addToast,dark}:any){
   useEffect(()=>{load()},[])
   const load=async()=>{
     setLoading(true)
+    // Buscar founders da Flüxa para excluí-los da lista (são superadmins invisíveis)
+    const {data:fluxaCo}=await sb.from('companies').select('id').eq('company_slug','fluxa').single()
+    const fluxaFounderIds:string[]=[]
+    if(fluxaCo){
+      const {data:fluxaUsers}=await sb.from('users').select('id').eq('company_id',fluxaCo.id).eq('role','founder')
+      if(fluxaUsers) fluxaUsers.forEach((u:any)=>fluxaFounderIds.push(u.id))
+    }
     const {data}=await sb.from('users').select('*').eq('company_id',company.id).eq('active',true).order('created_at')
-    if(data) setColabs(data);setLoading(false)
+    // Filtrar superadmins: remover founders da Flüxa que não pertencem de fato a esta empresa
+    if(data) setColabs(data.filter((u:any)=>!fluxaFounderIds.includes(u.id)||u.company_id===company.id))
+    setLoading(false)
   }
 
   const create=async()=>{
@@ -1435,6 +1461,11 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
     setUpLogo(false)
   }
 
+  const deleteLogo=async()=>{
+    await sb.from('companies').update({company_logo_url:null}).eq('id',company.id)
+    setCompany((c:any)=>({...c,company_logo_url:null}));addToast('Logo removida.','success')
+  }
+
   const cardCls=cx('p-4 rounded-2xl border',T.card(dark))
 
   return (
@@ -1527,6 +1558,9 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
               <div>
                 <p className={cx('text-sm font-semibold',T.text(dark))}>{company.company_name}</p>
                 <p className={cx('text-xs font-mono',T.muted(dark))}>@{company.company_slug}</p>
+                {company.company_logo_url&&(
+                  <button onClick={deleteLogo} className="mt-1 text-xs text-red-400 hover:text-red-500 underline">Remover logo</button>
+                )}
               </div>
             </div>
             <Field dark={dark} label="Nome da empresa" value={cForm.company_name} onChange={(v:string)=>setCForm(f=>({...f,company_name:v}))} icon={Building2}/>
