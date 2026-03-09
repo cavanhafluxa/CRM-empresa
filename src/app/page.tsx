@@ -5,9 +5,10 @@ import {
   LayoutDashboard, GitBranch, Users, Calendar, Settings, LogOut,
   Search, Plus, ChevronRight, ChevronLeft, TrendingUp, DollarSign,
   Target, X, Edit2, Trash2, Phone, Mail, MessageSquare, AlertCircle,
-  ChevronDown, Download, FileText, Star, Zap, CheckCircle, RefreshCw,
+  ChevronDown, Download, Star, Zap, CheckCircle, RefreshCw,
   Upload, User, Building2, Move, Briefcase, ChevronUp, Camera, Shield,
-  UserPlus, PenLine, HeadphonesIcon, Send, Menu, Eye, EyeOff, Hash, Bell
+  UserPlus, PenLine, HeadphonesIcon, Send, Menu, Eye, EyeOff, Hash, Bell,
+  Lock, Globe, BarChart2
 } from 'lucide-react'
 import {
   AreaChart, Area, PieChart, Pie, Cell,
@@ -17,6 +18,7 @@ import {
 const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
 const N8N = process.env.NEXT_PUBLIC_N8N_WEBHOOK || ''
 const cx = (...a: any[]) => a.filter(Boolean).join(' ')
+const FLUXA_SLUG = 'fluxa'
 const STAGES = ['Novo Lead','Qualificado','Reunião Marcada','Proposta','Fechado','Perdido']
 const SM: Record<string,{dot:string,bg:string,text:string,border:string}> = {
   'Novo Lead':       {dot:'#60A5FA',bg:'bg-blue-500/15',   text:'text-blue-400',   border:'border-blue-500/30'},
@@ -27,24 +29,28 @@ const SM: Record<string,{dot:string,bg:string,text:string,border:string}> = {
   'Perdido':         {dot:'#F87171',bg:'bg-red-500/15',    text:'text-red-400',    border:'border-red-500/30'},
 }
 
-// ── Theme helpers ────────────────────────────────────────────────
+// ── Theme ────────────────────────────────────────────────────────
 const T = {
   bg:     (d:boolean) => d ? 'bg-[#070C18]'      : 'bg-slate-100',
-  card:   (d:boolean) => d ? 'bg-white/[0.02] border-white/[0.07]' : 'bg-white border-slate-200',
-  sidebar:(d:boolean) => d ? 'bg-slate-950 border-white/[0.06]'    : 'bg-white border-slate-200',
-  header: (d:boolean) => d ? 'bg-slate-950/80 border-white/[0.06]' : 'bg-white/90 border-slate-200',
-  input:  (d:boolean) => d ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-600' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400',
+  card:   (d:boolean) => d ? 'bg-white/[0.03] border-white/[0.08]' : 'bg-white border-slate-300 shadow-sm',
+  sidebar:(d:boolean) => d ? 'bg-slate-950 border-white/[0.06]'    : 'bg-white border-slate-300',
+  header: (d:boolean) => d ? 'bg-slate-950/80 border-white/[0.06]' : 'bg-white/90 border-slate-300',
+  input:  (d:boolean) => d ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-500' : 'bg-white border-slate-400 text-slate-900 placeholder:text-slate-400',
   text:   (d:boolean) => d ? 'text-white'    : 'text-slate-900',
-  sub:    (d:boolean) => d ? 'text-slate-400' : 'text-slate-600',
+  sub:    (d:boolean) => d ? 'text-slate-300' : 'text-slate-700',
   muted:  (d:boolean) => d ? 'text-slate-500' : 'text-slate-500',
-  nav:    (d:boolean) => d ? 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100',
-  navA:   (d:boolean) => d ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-50 text-emerald-700',
-  modal:  (d:boolean) => d ? 'bg-slate-900 border-white/10'       : 'bg-white border-slate-200',
-  row:    (d:boolean) => d ? 'hover:bg-white/[0.02]' : 'hover:bg-slate-50',
-  tbl:    (d:boolean) => d ? 'bg-white/[0.01] border-white/[0.07]' : 'bg-white border-slate-200',
-  tblH:   (d:boolean) => d ? 'bg-white/[0.02] border-white/[0.07] text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-500',
-  tblB:   (d:boolean) => d ? 'border-white/[0.04]' : 'border-slate-100',
+  nav:    (d:boolean) => d ? 'text-slate-400 hover:text-white hover:bg-white/[0.05]' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100',
+  navA:   (d:boolean) => d ? 'bg-emerald-500/15 text-emerald-400' : 'bg-emerald-100 text-emerald-800 font-semibold',
+  modal:  (d:boolean) => d ? 'bg-slate-900 border-white/10'       : 'bg-white border-slate-300',
+  row:    (d:boolean) => d ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50',
+  tbl:    (d:boolean) => d ? 'bg-white/[0.02] border-white/[0.08]' : 'bg-white border-slate-300',
+  tblH:   (d:boolean) => d ? 'bg-white/[0.03] border-white/[0.08] text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600',
+  tblB:   (d:boolean) => d ? 'border-white/[0.05]' : 'border-slate-200',
   sel:    (d:boolean) => d ? 'bg-slate-900 text-white'             : 'bg-white text-slate-900',
+  // Dashboard card light mode gradients — better contrast
+  statCard:(d:boolean,color:string) => d
+    ? `bg-gradient-to-br ${color} border-white/[0.07]`
+    : `bg-white border-slate-300 shadow-sm`,
 }
 
 // ── Toast ────────────────────────────────────────────────────────
@@ -87,12 +93,12 @@ function Av({name,url,size='md'}:{name:string,url?:string,size?:string}){
 
 function Bdg({children,v='default'}:any){
   const vs:any={
-    default:'bg-slate-500/20 text-slate-400 border-slate-500/30',
-    success:'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    warning:'bg-amber-500/15 text-amber-400 border-amber-500/30',
-    danger: 'bg-red-500/15 text-red-400 border-red-500/30',
-    info:   'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    violet: 'bg-violet-500/15 text-violet-400 border-violet-500/30',
+    default:'bg-slate-500/20 text-slate-500 border-slate-400/30',
+    success:'bg-emerald-500/15 text-emerald-600 border-emerald-400/40',
+    warning:'bg-amber-500/15 text-amber-600 border-amber-400/40',
+    danger: 'bg-red-500/15 text-red-600 border-red-400/40',
+    info:   'bg-blue-500/15 text-blue-600 border-blue-400/40',
+    violet: 'bg-violet-500/15 text-violet-600 border-violet-400/40',
   }
   return <span className={cx('inline-flex items-center gap-1 border rounded-full font-medium px-2 py-0.5 text-xs',vs[v])}>{children}</span>
 }
@@ -119,7 +125,7 @@ function Confirm({open,onClose,onOk,title,msg,dark=true}:any){
     <Modal open={open} onClose={onClose} title={title} size="sm" dark={dark}>
       <p className={cx('text-sm mb-5',T.sub(dark))}>{msg}</p>
       <div className="flex gap-2 justify-end">
-        <button onClick={onClose} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400 hover:bg-white/5':'border-slate-200 text-slate-600 hover:bg-slate-50')}>Cancelar</button>
+        <button onClick={onClose} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400 hover:bg-white/5':'border-slate-300 text-slate-600 hover:bg-slate-50')}>Cancelar</button>
         <button onClick={onOk} className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium">Confirmar</button>
       </div>
     </Modal>
@@ -186,23 +192,74 @@ function Login({onLogin}:any){
   const [err,setErr]=useState('')
   const [loading,setLoading]=useState(false)
   const [show,setShow]=useState(false)
+  const [forgot,setForgot]=useState(false)
+  const [forgotUser,setForgotUser]=useState('')
+  const [forgotSlug,setForgotSlug]=useState('')
+  const [forgotSent,setForgotSent]=useState(false)
+  const [sending,setSending]=useState(false)
 
   const handle=async()=>{
     setErr('');setLoading(true)
     try{
       const {data:co}=await sb.from('companies').select('*').eq('company_slug',slug.trim().toLowerCase()).eq('crm_active',true).single()
       if(!co){setErr('Empresa não encontrada.');setLoading(false);return}
-      const {data:usr}=await sb.from('users').select('*').eq('company_id',co.id).eq('username',user.trim()).eq('password_hash',pass).eq('active',true).single()
+      const {data:usr}=await sb.from('users').select('*').eq('company_id',co.id).eq('username',user.trim().toLowerCase()).eq('password_hash',pass).eq('active',true).single()
       if(usr){onLogin({company:co,user:usr});setLoading(false);return}
-      const {data:auth}=await sb.from('company_auth').select('*').eq('company_slug',slug.trim().toLowerCase()).eq('active',true).single()
-      if(auth&&auth.password_hash===pass){
-        const {data:fu}=await sb.from('users').select('*').eq('company_id',co.id).in('role',['founder','gestor']).eq('active',true).order('created_at').limit(1).single()
-        if(fu){onLogin({company:co,user:fu});setLoading(false);return}
-      }
       setErr('Usuário ou senha inválidos.')
     }catch{setErr('Erro de conexão.')}
     setLoading(false)
   }
+
+  const sendForgot=async()=>{
+    if(!forgotSlug.trim()||!forgotUser.trim()){return}
+    setSending(true)
+    try{
+      const {data:co}=await sb.from('companies').select('*').eq('company_slug',forgotSlug.trim().toLowerCase()).single()
+      const {data:usr}=co?await sb.from('users').select('*').eq('company_id',co.id).eq('username',forgotUser.trim().toLowerCase()).single():{data:null}
+      await fetch(N8N,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        type:'esqueci_senha',empresa:forgotSlug.trim(),usuario:forgotUser.trim(),
+        empresa_nome:co?.company_name||forgotSlug,usuario_nome:usr?.full_name||forgotUser,
+        timestamp:new Date().toISOString()
+      })})
+      setForgotSent(true)
+    }catch{}
+    setSending(false)
+  }
+
+  if(forgot) return (
+    <div className="min-h-screen bg-[#050812] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center"><Zap size={18} className="text-white"/></div>
+            <span className="text-xl font-bold text-white">Flüxa <span className="text-emerald-400">CRM</span></span>
+          </div>
+        </div>
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
+          {forgotSent?(
+            <div className="text-center space-y-4">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto"><CheckCircle size={22} className="text-emerald-400"/></div>
+              <p className="text-white font-semibold text-sm">Solicitação enviada!</p>
+              <p className="text-slate-400 text-xs">Nossa equipe recebeu seu pedido e entrará em contato para redefinir sua senha.</p>
+              <button onClick={()=>{setForgot(false);setForgotSent(false)}} className="text-emerald-400 text-xs hover:underline">Voltar ao login</button>
+            </div>
+          ):(
+            <div className="space-y-3">
+              <p className="text-white font-semibold text-sm mb-1">Esqueci minha senha</p>
+              <p className="text-slate-400 text-xs mb-3">Informe seus dados e nossa equipe irá redefinir sua senha.</p>
+              <Field label="Empresa" value={forgotSlug} onChange={setForgotSlug} placeholder="company-slug" icon={Building2}/>
+              <Field label="Usuário" value={forgotUser} onChange={setForgotUser} placeholder="seu-usuario" icon={User}/>
+              <button onClick={sendForgot} disabled={sending||!forgotSlug||!forgotUser}
+                className="w-full py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold disabled:opacity-50 active:scale-95 transition-all">
+                {sending?'Enviando...':'Solicitar redefinição'}
+              </button>
+              <button onClick={()=>setForgot(false)} className="w-full text-slate-500 text-xs hover:text-slate-300 text-center">Voltar ao login</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-[#050812] flex items-center justify-center px-4 relative overflow-hidden">
@@ -236,6 +293,9 @@ function Login({onLogin}:any){
               className="w-full py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold shadow-lg shadow-emerald-500/20 disabled:opacity-60 active:scale-95 transition-all">
               {loading?<span className="flex items-center justify-center gap-2"><RefreshCw size={13} className="animate-spin"/>Entrando...</span>:'Entrar'}
             </button>
+            <button onClick={()=>setForgot(true)} className="w-full text-slate-500 text-xs hover:text-slate-300 text-center transition-colors">
+              Esqueci minha senha
+            </button>
           </div>
         </div>
       </div>
@@ -244,17 +304,24 @@ function Login({onLogin}:any){
 }
 
 // ══════════════════════════════════════════════════════════════════
-// SIDEBAR — Config e Suporte na parte de baixo
+// SIDEBAR
 // ══════════════════════════════════════════════════════════════════
 function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDark}:any){
+  const isHub=company.company_slug===FLUXA_SLUG&&user.role==='founder'
   const RL:any={founder:'Founder',gestor:'Gestor',colaborador:'Colaborador'}
   const RC:any={founder:'text-amber-400',gestor:'text-violet-400',colaborador:'text-blue-400'}
-  const topNav=[
-    {id:'dashboard',    label:'Dashboard',     icon:LayoutDashboard},
-    {id:'pipeline',     label:'Pipeline',      icon:GitBranch},
-    {id:'leads',        label:'Leads',         icon:Users},
-    {id:'calendar',     label:'Calendário',    icon:Calendar},
-    {id:'colaboradores',label:'Colaboradores', icon:Shield},
+
+  const topNav=isHub?[
+    {id:'hub_dashboard',  label:'Dashboard',       icon:LayoutDashboard},
+    {id:'hub_empresas',   label:'Empresas',         icon:Globe},
+    {id:'hub_criar',      label:'Criar Empresa',    icon:Plus},
+    {id:'colaboradores',  label:'Colaboradores',    icon:Shield},
+  ]:[
+    {id:'dashboard',      label:'Dashboard',        icon:LayoutDashboard},
+    {id:'pipeline',       label:'Pipeline',         icon:GitBranch},
+    {id:'leads',          label:'Leads',            icon:Users},
+    {id:'calendar',       label:'Calendário',       icon:Calendar},
+    {id:'colaboradores',  label:'Colaboradores',    icon:Shield},
   ]
   const bottomNav=[
     {id:'settings', label:'Configurações', icon:Settings},
@@ -273,7 +340,6 @@ function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDa
 
   const inner=(
     <div className={cx('flex flex-col h-full border-r',T.sidebar(dark))}>
-      {/* Logo */}
       <div className={cx('flex items-center gap-2.5 px-4 h-14 border-b shrink-0',dark?'border-white/[0.06]':'border-slate-200')}>
         {company.company_logo_url
           ?<img src={company.company_logo_url} className="w-8 h-8 rounded-lg object-contain" alt="logo"/>
@@ -285,20 +351,25 @@ function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDa
         </div>
         <button onClick={()=>setOpen(false)} className={cx('sm:hidden',dark?'text-slate-500':'text-slate-400')}><X size={16}/></button>
       </div>
-      {/* Top nav */}
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+      {isHub&&(
+        <div className="px-3 py-2">
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <Zap size={10} className="text-emerald-400"/>
+            <span className="text-[10px] font-semibold text-emerald-400">Hub de Controle</span>
+          </div>
+        </div>
+      )}
+      <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
         {topNav.map(n=><NavBtn key={n.id} {...n}/>)}
       </nav>
-      {/* Bottom nav — config + suporte */}
       <div className={cx('px-2 py-2 border-t space-y-0.5',dark?'border-white/[0.06]':'border-slate-200')}>
         {bottomNav.map(n=><NavBtn key={n.id} {...n}/>)}
       </div>
-      {/* User + dark toggle */}
       <div className={cx('p-2 border-t',dark?'border-white/[0.06]':'border-slate-200')}>
         <button onClick={()=>setDark((d:boolean)=>!d)}
           className={cx('w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm mb-1',T.nav(dark))}>
           <span className="text-base">{dark?'☀️':'🌙'}</span>
-          <span className={cx('font-medium text-sm',T.sub(dark))}>{dark?'Modo Claro':'Modo Escuro'}</span>
+          <span className={cx('font-medium text-sm',dark?'text-slate-400':'text-slate-600')}>{dark?'Modo Claro':'Modo Escuro'}</span>
         </button>
         <div className={cx('flex items-center gap-2.5 px-3 py-2 rounded-xl',dark?'bg-white/[0.02]':'bg-slate-50')}>
           <Av name={user.display_name||user.full_name} size="sm" url={user.avatar_url}/>
@@ -329,7 +400,7 @@ function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDa
 // ══════════════════════════════════════════════════════════════════
 function Dashboard({leads,company,addToast,dark}:any){
   const [loading,setLoading]=useState(true)
-  useEffect(()=>{setTimeout(()=>setLoading(false),500)},[])
+  useEffect(()=>{setTimeout(()=>setLoading(false),400)},[])
 
   const total=leads.length
   const fechados=leads.filter((l:any)=>l.pipeline_stage==='Fechado')
@@ -357,52 +428,51 @@ function Dashboard({leads,company,addToast,dark}:any){
     return <div className="bg-slate-900/95 border border-white/10 rounded-xl px-3 py-2 text-xs shadow-xl"><p className="text-slate-400 mb-1">{label}</p>{payload.map((p:any,i:number)=><p key={i} style={{color:p.color}} className="font-semibold">{p.name}: {p.value}</p>)}</div>
   }
 
+  const stats=[
+    {label:'Total Leads',val:String(total),icon:Users,       iconBg:dark?'bg-blue-500/20':'bg-blue-100',   iconCl:dark?'text-blue-400':'text-blue-700',   valCl:dark?'text-white':'text-slate-900', border:dark?'border-white/[0.07]':'border-blue-200'},
+    {label:'Conversão',  val:`${conv}%`,   icon:Target,      iconBg:dark?'bg-emerald-500/20':'bg-emerald-100', iconCl:dark?'text-emerald-400':'text-emerald-700', valCl:dark?'text-white':'text-slate-900', border:dark?'border-white/[0.07]':'border-emerald-200'},
+    {label:'Ticket Médio',val:`R$${ticket.toLocaleString()}`,icon:DollarSign,iconBg:dark?'bg-violet-500/20':'bg-violet-100',iconCl:dark?'text-violet-400':'text-violet-700',valCl:dark?'text-white':'text-slate-900',border:dark?'border-white/[0.07]':'border-violet-200'},
+    {label:'Negociação', val:`R$${(negoc/1000).toFixed(0)}k`,icon:TrendingUp,iconBg:dark?'bg-amber-500/20':'bg-amber-100', iconCl:dark?'text-amber-400':'text-amber-700', valCl:dark?'text-white':'text-slate-900', border:dark?'border-white/[0.07]':'border-amber-200'},
+  ]
+
   return (
     <div className="flex-1 overflow-y-auto">
       <Header dark={dark} title="Dashboard" subtitle={company.company_name} actions={
-        <div className="flex gap-1.5">
-          <button onClick={exportCSV} className={cx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs',dark?'border-white/10 text-slate-400 hover:text-white':'border-slate-200 text-slate-600 hover:text-slate-900')}><Download size={12}/>CSV</button>
-        </div>
+        <button onClick={exportCSV} className={cx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs',dark?'border-white/10 text-slate-400 hover:text-white':'border-slate-300 text-slate-600 hover:text-slate-900')}><Download size={12}/>CSV</button>
       }/>
       <div className="p-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          {[
-            {label:'Total Leads',val:String(total),icon:Users,       color:dark?'from-blue-600/20 to-blue-900/10':'from-blue-50 to-blue-100/50',border:dark?'border-white/[0.07]':'border-blue-200/50'},
-            {label:'Conversão',  val:`${conv}%`,   icon:Target,      color:dark?'from-emerald-600/20 to-emerald-900/10':'from-emerald-50 to-emerald-100/50',border:dark?'border-white/[0.07]':'border-emerald-200/50'},
-            {label:'Ticket Médio',val:`R$${ticket.toLocaleString()}`,icon:DollarSign,color:dark?'from-violet-600/20 to-violet-900/10':'from-violet-50 to-violet-100/50',border:dark?'border-white/[0.07]':'border-violet-200/50'},
-            {label:'Negociação', val:`R$${(negoc/1000).toFixed(0)}k`,icon:TrendingUp,color:dark?'from-amber-600/20 to-amber-900/10':'from-amber-50 to-amber-100/50',border:dark?'border-white/[0.07]':'border-amber-200/50'},
-          ].map(({label,val,icon:Icon,color,border})=>(
-            <div key={label} className={cx('p-4 rounded-2xl border bg-gradient-to-br',color,border)}>
-              <div className={cx('w-8 h-8 rounded-xl flex items-center justify-center mb-2',dark?'bg-white/10':'bg-white shadow-sm')}><Icon size={14} className={dark?'text-white':'text-slate-700'}/></div>
-              {loading?<Sk className="h-6 w-16 mb-1"/>:<p className={cx('text-lg font-bold',T.text(dark))}>{val}</p>}
-              <p className={cx('text-[10px]',T.sub(dark))}>{label}</p>
+          {stats.map(({label,val,icon:Icon,iconBg,iconCl,valCl,border})=>(
+            <div key={label} className={cx('p-4 rounded-2xl border',dark?'bg-white/[0.03]':'bg-white shadow-sm',border)}>
+              <div className={cx('w-9 h-9 rounded-xl flex items-center justify-center mb-3',iconBg)}><Icon size={16} className={iconCl}/></div>
+              {loading?<Sk className="h-7 w-20 mb-1"/>:<p className={cx('text-xl font-bold mb-0.5',valCl)}>{val}</p>}
+              <p className={cx('text-xs font-medium',dark?'text-slate-400':'text-slate-600')}>{label}</p>
             </div>
           ))}
         </div>
 
         <div className={cx('p-4 rounded-2xl border overflow-hidden',T.card(dark))}>
-          <p className={cx('text-xs font-semibold mb-1',T.text(dark))}>Evolução de Leads</p>
-          <p className={cx('text-[10px] mb-3',T.muted(dark))}>Últimos 6 meses — dados reais</p>
+          <p className={cx('text-sm font-semibold mb-1',T.text(dark))}>Evolução de Leads</p>
+          <p className={cx('text-[11px] mb-3',T.muted(dark))}>Últimos 6 meses — dados reais</p>
           {loading?<Sk className="h-36"/>:(
             <div style={{height:140}}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{top:4,right:4,left:-20,bottom:0}}>
                   <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#34D399" stopOpacity={0.3}/><stop offset="95%" stopColor="#34D399" stopOpacity={0}/></linearGradient></defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={dark?"rgba(255,255,255,0.04)":"rgba(0,0,0,0.06)"}/>
-                  <XAxis dataKey="month" tick={{fill:dark?'#64748B':'#94a3b8',fontSize:10}} axisLine={false} tickLine={false}/>
-                  <YAxis tick={{fill:dark?'#64748B':'#94a3b8',fontSize:10}} axisLine={false} tickLine={false} allowDecimals={false}/>
+                  <CartesianGrid strokeDasharray="3 3" stroke={dark?"rgba(255,255,255,0.05)":"rgba(0,0,0,0.08)"}/>
+                  <XAxis dataKey="month" tick={{fill:dark?'#64748B':'#64748b',fontSize:10}} axisLine={false} tickLine={false}/>
+                  <YAxis tick={{fill:dark?'#64748B':'#64748b',fontSize:10}} axisLine={false} tickLine={false} allowDecimals={false}/>
                   <Tooltip content={<CT/>}/>
                   <Area type="monotone" dataKey="leads" name="Leads" stroke="#34D399" strokeWidth={2} fill="url(#g1)"/>
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           )}
-          {leads.length===0&&!loading&&<p className={cx('text-center text-xs mt-2',T.muted(dark))}>Nenhum lead ainda.</p>}
         </div>
 
         {stageData.length>0&&(
           <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
-            <p className={cx('text-xs font-semibold mb-3',T.text(dark))}>Pipeline por Etapa</p>
+            <p className={cx('text-sm font-semibold mb-3',T.text(dark))}>Pipeline por Etapa</p>
             <div className="flex items-center gap-4">
               <ResponsiveContainer width={110} height={110}>
                 <PieChart><Pie data={stageData} cx="50%" cy="50%" innerRadius={32} outerRadius={52} paddingAngle={3} dataKey="value">{stageData.map((e:any,i:number)=><Cell key={i} fill={e.color}/>)}</Pie></PieChart>
@@ -411,7 +481,7 @@ function Dashboard({leads,company,addToast,dark}:any){
                 {stageData.map((s:any,i:number)=>(
                   <div key={i} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full shrink-0" style={{background:s.color}}/><span className={cx('text-[11px] truncate',T.sub(dark))}>{s.name}</span></div>
-                    <span className={cx('font-semibold',T.text(dark))}>{s.value}</span>
+                    <span className={cx('font-bold',T.text(dark))}>{s.value}</span>
                   </div>
                 ))}
               </div>
@@ -420,7 +490,7 @@ function Dashboard({leads,company,addToast,dark}:any){
         )}
 
         <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
-          <p className={cx('text-xs font-semibold mb-3',T.text(dark))}>Leads Recentes</p>
+          <p className={cx('text-sm font-semibold mb-3',T.text(dark))}>Leads Recentes</p>
           <div className="space-y-2">
             {leads.slice(0,5).map((l:any)=>{
               const m=SM[l.pipeline_stage]||SM['Novo Lead']
@@ -438,6 +508,180 @@ function Dashboard({leads,company,addToast,dark}:any){
             {leads.length===0&&<p className={cx('text-xs text-center py-4',T.muted(dark))}>Nenhum lead ainda</p>}
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
+// HUB DASHBOARD (somente Flüxa founder)
+// ══════════════════════════════════════════════════════════════════
+function HubDashboard({dark,addToast}:any){
+  const [companies,setCompanies]=useState<any[]>([])
+  const [users,setUsers]=useState<any[]>([])
+  const [loading,setLoading]=useState(true)
+
+  useEffect(()=>{
+    Promise.all([
+      sb.from('companies').select('*').order('created_at',{ascending:false}),
+      sb.from('users').select('*').eq('active',true),
+    ]).then(([cr,ur])=>{
+      if(cr.data) setCompanies(cr.data)
+      if(ur.data) setUsers(ur.data)
+      setLoading(false)
+    })
+  },[])
+
+  const active=companies.filter(c=>c.crm_active)
+  const totalUsers=users.length
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <Header dark={dark} title="Hub Dashboard" subtitle="Visão geral da plataforma"/>
+      <div className="p-4 space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            {label:'Empresas Ativas',val:String(active.length),icon:Building2,iconBg:dark?'bg-emerald-500/20':'bg-emerald-100',iconCl:dark?'text-emerald-400':'text-emerald-700',border:dark?'border-white/[0.07]':'border-emerald-200'},
+            {label:'Total Usuários', val:String(totalUsers),   icon:Users,    iconBg:dark?'bg-blue-500/20':'bg-blue-100',   iconCl:dark?'text-blue-400':'text-blue-700',   border:dark?'border-white/[0.07]':'border-blue-200'},
+            {label:'Total Empresas', val:String(companies.length),icon:Globe, iconBg:dark?'bg-violet-500/20':'bg-violet-100',iconCl:dark?'text-violet-400':'text-violet-700',border:dark?'border-white/[0.07]':'border-violet-200'},
+            {label:'Leads Totais',   val:'—',                  icon:BarChart2,iconBg:dark?'bg-amber-500/20':'bg-amber-100', iconCl:dark?'text-amber-400':'text-amber-700', border:dark?'border-white/[0.07]':'border-amber-200'},
+          ].map(({label,val,icon:Icon,iconBg,iconCl,border})=>(
+            <div key={label} className={cx('p-4 rounded-2xl border',dark?'bg-white/[0.03]':'bg-white shadow-sm',border)}>
+              <div className={cx('w-9 h-9 rounded-xl flex items-center justify-center mb-3',iconBg)}><Icon size={16} className={iconCl}/></div>
+              {loading?<Sk className="h-7 w-16 mb-1"/>:<p className={cx('text-xl font-bold mb-0.5',T.text(dark))}>{val}</p>}
+              <p className={cx('text-xs font-medium',T.muted(dark))}>{label}</p>
+            </div>
+          ))}
+        </div>
+        <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
+          <p className={cx('text-sm font-semibold mb-3',T.text(dark))}>Empresas Recentes</p>
+          {loading?<Sk className="h-24"/>:(
+            <div className="space-y-2">
+              {companies.slice(0,5).map(c=>(
+                <div key={c.id} className={cx('flex items-center gap-3 p-2.5 rounded-xl',T.row(dark))}>
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shrink-0"><Zap size={12} className="text-white"/></div>
+                  <div className="flex-1 min-w-0">
+                    <p className={cx('text-xs font-semibold truncate',T.text(dark))}>{c.company_name}</p>
+                    <p className={cx('text-[10px]',T.muted(dark))}>@{c.company_slug}</p>
+                  </div>
+                  <span className={cx('text-[10px] px-2 py-0.5 rounded-full border font-medium',c.crm_active?'bg-emerald-500/15 text-emerald-600 border-emerald-400/30':'bg-red-500/15 text-red-500 border-red-400/30')}>{c.crm_active?'Ativa':'Inativa'}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
+// HUB EMPRESAS (lista)
+// ══════════════════════════════════════════════════════════════════
+function HubEmpresas({dark}:any){
+  const [companies,setCompanies]=useState<any[]>([])
+  const [loading,setLoading]=useState(true)
+
+  useEffect(()=>{
+    sb.from('companies').select('*').order('created_at',{ascending:false}).then(({data})=>{if(data)setCompanies(data);setLoading(false)})
+  },[])
+
+  return (
+    <div className="flex-1 overflow-hidden flex flex-col">
+      <Header dark={dark} title="Empresas Cadastradas" subtitle={`${companies.length} parceiros`}/>
+      <div className="flex-1 overflow-y-auto p-4">
+        {loading?<div className="space-y-2">{[1,2,3].map(i=><Sk key={i} className="h-16 rounded-2xl"/>)}</div>:(
+          <div className="space-y-2">
+            {companies.map((c,i)=>(
+              <div key={c.id} className={cx('flex items-center gap-4 p-4 rounded-2xl border',T.card(dark))}>
+                <span className={cx('w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0',dark?'bg-white/10 text-slate-400':'bg-slate-100 text-slate-600')}>{i+1}</span>
+                <div className={cx('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',dark?'bg-emerald-500/15':'bg-emerald-100')}>
+                  {c.company_logo_url?<img src={c.company_logo_url} className="w-8 h-8 object-contain rounded-lg" alt=""/>:<Zap size={16} className={dark?'text-emerald-400':'text-emerald-600'}/>}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={cx('text-sm font-semibold',T.text(dark))}>{c.company_name}</p>
+                  <p className={cx('text-[10px] font-mono',T.muted(dark))}>@{c.company_slug}</p>
+                  <p className={cx('text-[10px]',T.muted(dark))}>{c.created_at?.split('T')[0]}</p>
+                </div>
+                <span className={cx('text-xs px-2.5 py-1 rounded-full border font-medium shrink-0',c.crm_active?'bg-emerald-500/15 text-emerald-600 border-emerald-400/30':'bg-red-500/15 text-red-500 border-red-400/30')}>{c.crm_active?'Ativa':'Inativa'}</span>
+              </div>
+            ))}
+            {companies.length===0&&<p className={cx('text-center text-sm py-8',T.muted(dark))}>Nenhuma empresa cadastrada.</p>}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════════
+// HUB CRIAR EMPRESA
+// ══════════════════════════════════════════════════════════════════
+function HubCriarEmpresa({dark,addToast,setTab}:any){
+  const [form,setForm]=useState({company_name:'',company_slug:'',gestor_nome:'',gestor_usuario:'',gestor_senha:'',funil_nome:'Funil Geral'})
+  const [creating,setCreating]=useState(false)
+  const set=(k:string,v:string)=>setForm(f=>({...f,[k]:v}))
+
+  const create=async()=>{
+    const {company_name,company_slug,gestor_nome,gestor_usuario,gestor_senha}=form
+    if(!company_name.trim()||!company_slug.trim()||!gestor_nome.trim()||!gestor_usuario.trim()||!gestor_senha.trim()){
+      addToast('Preencha todos os campos obrigatórios.','error');return
+    }
+    const slug=company_slug.trim().toLowerCase().replace(/\s+/g,'-')
+    setCreating(true)
+    try{
+      // 1. Criar empresa
+      const companyId=crypto.randomUUID()
+      const {error:ce}=await sb.from('companies').insert({id:companyId,company_name:company_name.trim(),company_slug:slug,crm_active:true})
+      if(ce) throw new Error('Erro ao criar empresa: '+ce.message)
+      // 2. Criar company_auth
+      await sb.from('company_auth').insert({company_id:companyId,company_slug:slug,password_hash:gestor_senha.trim(),active:true})
+      // 3. Criar gestor/founder
+      const {error:ue}=await sb.from('users').insert({
+        company_id:companyId,full_name:gestor_nome.trim(),display_name:gestor_nome.trim(),
+        username:gestor_usuario.trim().toLowerCase(),password_hash:gestor_senha.trim(),
+        role:'gestor',active:true,email:null,
+      })
+      if(ue) throw new Error('Erro ao criar usuário: '+ue.message)
+      // 4. Criar funil padrão
+      await sb.from('funnels').insert({company_id:companyId,name:form.funil_nome.trim()||'Funil Geral'})
+
+      addToast(`Empresa "${company_name.trim()}" criada com sucesso! 🎉`,'success')
+      setForm({company_name:'',company_slug:'',gestor_nome:'',gestor_usuario:'',gestor_senha:'',funil_nome:'Funil Geral'})
+      setTab('hub_empresas')
+    }catch(e:any){addToast(e.message||'Erro ao criar empresa.','error')}
+    setCreating(false)
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <Header dark={dark} title="Criar Empresa" subtitle="Cadastrar novo parceiro no hub"/>
+      <div className="p-4 max-w-lg space-y-4">
+        <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
+          <p className={cx('text-xs font-semibold mb-4 flex items-center gap-2',T.text(dark))}><Building2 size={13}/>Dados da Empresa</p>
+          <div className="space-y-3">
+            <Field dark={dark} label="Nome da empresa" value={form.company_name} onChange={(v:string)=>set('company_name',v)} required icon={Building2} placeholder="Ex: Vidramax"/>
+            <Field dark={dark} label="Slug (login)" value={form.company_slug} onChange={(v:string)=>set('company_slug',v.toLowerCase().replace(/\s+/g,'-'))} required icon={Hash} placeholder="ex: vidramax"/>
+            <Field dark={dark} label="Nome do funil padrão" value={form.funil_nome} onChange={(v:string)=>set('funil_nome',v)} placeholder="Funil Geral"/>
+          </div>
+        </div>
+        <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
+          <p className={cx('text-xs font-semibold mb-4 flex items-center gap-2',T.text(dark))}><User size={13}/>Gestor Principal</p>
+          <div className="space-y-3">
+            <Field dark={dark} label="Nome completo" value={form.gestor_nome} onChange={(v:string)=>set('gestor_nome',v)} required icon={User} placeholder="Ex: João Silva"/>
+            <div className="grid grid-cols-2 gap-3">
+              <Field dark={dark} label="Usuário (login)" value={form.gestor_usuario} onChange={(v:string)=>set('gestor_usuario',v)} required icon={Hash} placeholder="joaosilva"/>
+              <Field dark={dark} label="Senha" value={form.gestor_senha} onChange={(v:string)=>set('gestor_senha',v)} required type="password" icon={Lock}/>
+            </div>
+          </div>
+        </div>
+        <div className={cx('p-4 rounded-2xl border',dark?'border-blue-500/20 bg-blue-500/5':'border-blue-200 bg-blue-50')}>
+          <p className={cx('text-xs font-medium flex items-center gap-2',dark?'text-blue-300':'text-blue-700')}><AlertCircle size={13}/>O gestor receberá acesso completo ao CRM da empresa. Você poderá adicionar colaboradores depois.</p>
+        </div>
+        <button onClick={create} disabled={creating}
+          className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold shadow-lg shadow-emerald-500/20 disabled:opacity-60 active:scale-95 transition-all flex items-center justify-center gap-2">
+          {creating?<><RefreshCw size={14} className="animate-spin"/>Criando...</>:<><Plus size={14}/>Criar Empresa</>}
+        </button>
       </div>
     </div>
   )
@@ -541,7 +785,7 @@ function LeadModal({lead,open,onClose,onSave,onDelete,role,addToast,funnels,comp
         <div className={cx('flex justify-between mt-5 pt-4 border-t',dark?'border-white/[0.06]':'border-slate-200')}>
           {canDel?<button onClick={()=>setDelConfirm(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10 text-sm"><Trash2 size={13}/>Excluir</button>:<div/>}
           <div className="flex gap-2">
-            <button onClick={onClose} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400 hover:bg-white/5':'border-slate-200 text-slate-600 hover:bg-slate-50')}>Cancelar</button>
+            <button onClick={onClose} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-300 text-slate-600 hover:bg-slate-50')}>Cancelar</button>
             <button onClick={save} disabled={saving} className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium disabled:opacity-60">{saving?'Salvando...':'Salvar'}</button>
           </div>
         </div>
@@ -603,8 +847,8 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark}:any)
   }
 
   const getUser=(id:string)=>users?.find((u:any)=>u.id===id)
-  const cardBg=dark?'bg-slate-900/80 border-white/[0.07] hover:border-white/[0.15]':'bg-white border-slate-200 hover:border-slate-400 shadow-sm'
-  const colBg=(over:boolean)=>dark?(over?'border-white/20 bg-white/[0.05]':'border-white/[0.06] bg-white/[0.015]'):(over?'border-emerald-300 bg-emerald-50/30':'border-slate-200 bg-slate-50/50')
+  const cardBg=dark?'bg-slate-900/80 border-white/[0.07] hover:border-white/[0.15]':'bg-white border-slate-300 hover:border-slate-400 shadow-sm'
+  const colBg=(over:boolean)=>dark?(over?'border-white/20 bg-white/[0.05]':'border-white/[0.06] bg-white/[0.015]'):(over?'border-emerald-300 bg-emerald-50/30':'border-slate-300 bg-slate-50')
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
@@ -616,7 +860,7 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark}:any)
             <option value="none" className={T.sel(dark)}>Sem responsável</option>
             {users?.map((u:any)=><option key={u.id} value={u.id} className={T.sel(dark)}>{u.display_name||u.full_name}</option>)}
           </select>
-          <button onClick={()=>setShowNew(true)} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-semibold shadow-md shadow-emerald-500/20 transition-all"><Plus size={13}/>Lead</button>
+          <button onClick={()=>setShowNew(true)} className="flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-semibold shadow-md transition-all"><Plus size={13}/>Lead</button>
         </div>
       }/>
       <div className="flex-1 overflow-x-auto p-3">
@@ -638,7 +882,7 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark}:any)
                     ):(
                       <span className={cx('text-xs font-semibold truncate flex-1',T.text(dark))}>{lbl(stage)}</span>
                     )}
-                    {canEdit&&<button onClick={()=>{setEditCol(stage);setEditVal(lbl(stage))}} className={cx('shrink-0',T.muted(dark))}><PenLine size={10}/></button>}
+                    {canEdit&&<button onClick={()=>{setEditCol(stage);setEditVal(lbl(stage))}} className={T.muted(dark)}><PenLine size={10}/></button>}
                     <span className={cx('text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0',m.bg,m.text)}>{sl.length}</span>
                   </div>
                   <p className={cx('text-[10px]',T.muted(dark))}>R${sv.toLocaleString('pt-BR')}</p>
@@ -675,7 +919,6 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark}:any)
           })}
         </div>
       </div>
-
       <Modal dark={dark} open={showNew} onClose={()=>setShowNew(false)} title="Novo Lead" size="md">
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -692,7 +935,7 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark}:any)
             <Sel dark={dark} label="Responsável" value={newLead.assigned_to||''} onChange={(v:string)=>setNewLead((f:any)=>({...f,assigned_to:v||null}))} options={[{value:'',label:'Sem responsável'},...(users||[]).map((u:any)=>({value:u.id,label:u.display_name||u.full_name}))]}/>
           </div>
           <div className="flex gap-2 justify-end pt-2">
-            <button onClick={()=>setShowNew(false)} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-200 text-slate-600')}>Cancelar</button>
+            <button onClick={()=>setShowNew(false)} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-300 text-slate-600')}>Cancelar</button>
             <button onClick={create} disabled={creating} className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-medium disabled:opacity-60 transition-all">{creating?'Criando...':'Criar Lead'}</button>
           </div>
         </div>
@@ -735,7 +978,7 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,dark}:any){
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
       <Header dark={dark} title="Leads" subtitle={`${filtered.length} registros`} actions={
-        <button onClick={exportCSV} className={cx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs',dark?'border-white/10 text-slate-400 hover:text-white':'border-slate-200 text-slate-600 hover:text-slate-900')}><Download size={12}/>CSV</button>
+        <button onClick={exportCSV} className={cx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs',dark?'border-white/10 text-slate-400 hover:text-white':'border-slate-300 text-slate-600 hover:text-slate-900')}><Download size={12}/>CSV</button>
       }/>
       <div className="flex-1 overflow-y-auto p-4">
         <div className="flex flex-col sm:flex-row gap-2 mb-4">
@@ -751,13 +994,12 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,dark}:any){
           </select>
         </div>
 
-        {/* Desktop */}
         <div className={cx('hidden sm:block rounded-2xl border overflow-hidden',T.tbl(dark))}>
           <table className="w-full">
             <thead>
               <tr className={cx('border-b',T.tblH(dark))}>
                 {[{k:'nome',l:'Nome'},{k:'servico',l:'Serviço'},{k:'pipeline_stage',l:'Etapa'},{k:'valor_estimado',l:'Valor'},{k:'status',l:'Status'},{k:'created_at',l:'Criado'}].map(c=>(
-                  <th key={c.k} onClick={()=>ts(c.k)} className={cx('text-left px-4 py-3 text-xs font-medium cursor-pointer',T.muted(dark))}>
+                  <th key={c.k} onClick={()=>ts(c.k)} className={cx('text-left px-4 py-3 text-xs font-medium cursor-pointer select-none',T.muted(dark))}>
                     <span className="flex items-center gap-1">{c.l}<Si col={c.k}/></span>
                   </th>
                 ))}
@@ -765,14 +1007,14 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,dark}:any){
               </tr>
             </thead>
             <tbody>
-              {paged.map((l:any,i:number)=>{
+              {paged.map((l:any)=>{
                 const m=SM[l.pipeline_stage]||SM['Novo Lead']
                 return (
                   <tr key={l.id} className={cx('border-b transition-colors',T.tblB(dark),T.row(dark))}>
                     <td className="px-4 py-3"><div className="flex items-center gap-2.5"><Av name={l.nome} size="sm"/><div><p className={cx('text-xs font-medium',T.text(dark))}>{l.nome}</p><p className={cx('text-[10px]',T.muted(dark))}>{l.telefone}</p></div></div></td>
                     <td className={cx('px-4 py-3 text-xs',T.sub(dark))}>{l.servico}</td>
                     <td className="px-4 py-3"><span className={cx('text-[10px] font-medium px-2 py-0.5 rounded-full border',m.bg,m.text,m.border)}>{l.pipeline_stage}</span></td>
-                    <td className={cx('px-4 py-3 text-xs font-semibold',T.text(dark))}>R${(l.valor_estimado||0).toLocaleString()}</td>
+                    <td className={cx('px-4 py-3 text-xs font-bold',T.text(dark))}>R${(l.valor_estimado||0).toLocaleString()}</td>
                     <td className="px-4 py-3"><Bdg v={sv[l.status]}>{l.status}</Bdg></td>
                     <td className={cx('px-4 py-3 text-[10px]',T.muted(dark))}>{l.created_at?.split('T')[0]}</td>
                     <td className="px-4 py-3"><button onClick={()=>setSelected(l)} className={cx('w-7 h-7 rounded-lg flex items-center justify-center',dark?'hover:bg-white/10 text-slate-500 hover:text-white':'hover:bg-slate-100 text-slate-400 hover:text-slate-900')}><Edit2 size={13}/></button></td>
@@ -784,7 +1026,6 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,dark}:any){
           {paged.length===0&&<div className="py-12 text-center"><p className={cx('text-sm',T.muted(dark))}>Nenhum lead encontrado</p></div>}
         </div>
 
-        {/* Mobile cards */}
         <div className="sm:hidden space-y-2">
           {paged.map((l:any)=>{
             const m=SM[l.pipeline_stage]||SM['Novo Lead']
@@ -810,11 +1051,11 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,dark}:any){
           <div className="flex items-center justify-between mt-4">
             <p className={cx('text-xs',T.muted(dark))}>{filtered.length} resultados</p>
             <div className="flex items-center gap-1">
-              <button disabled={page===1} onClick={()=>setPage(p=>p-1)} className={cx('w-8 h-8 rounded-lg border flex items-center justify-center disabled:opacity-30',dark?'border-white/10 text-slate-400':'border-slate-200 text-slate-600')}><ChevronLeft size={13}/></button>
+              <button disabled={page===1} onClick={()=>setPage(p=>p-1)} className={cx('w-8 h-8 rounded-lg border flex items-center justify-center disabled:opacity-30',dark?'border-white/10 text-slate-400':'border-slate-300 text-slate-600')}><ChevronLeft size={13}/></button>
               {Array.from({length:Math.min(pages,5)},(_,i)=>(
                 <button key={i} onClick={()=>setPage(i+1)} className={cx('w-8 h-8 rounded-lg text-xs font-medium',page===i+1?'bg-emerald-500 text-white':dark?'text-slate-500 hover:bg-white/10':'text-slate-600 hover:bg-slate-100')}>{i+1}</button>
               ))}
-              <button disabled={page===pages} onClick={()=>setPage(p=>p+1)} className={cx('w-8 h-8 rounded-lg border flex items-center justify-center disabled:opacity-30',dark?'border-white/10 text-slate-400':'border-slate-200 text-slate-600')}><ChevronRight size={13}/></button>
+              <button disabled={page===pages} onClick={()=>setPage(p=>p+1)} className={cx('w-8 h-8 rounded-lg border flex items-center justify-center disabled:opacity-30',dark?'border-white/10 text-slate-400':'border-slate-300 text-slate-600')}><ChevronRight size={13}/></button>
             </div>
           </div>
         )}
@@ -857,9 +1098,8 @@ function CalendarView({company,addToast,user,dark}:any){
 
   const create=async()=>{
     if(!form.title?.trim()){addToast('Título obrigatório.','error');return}
-    const {data,error}=await sb.from('meetings').insert({company_id:company.id,...form,created_by:user.id}).select().single()
-    if(error){addToast('Erro ao criar.','error');return}
-    setMeetings(ms=>[...ms,data]);setForm({event_type:'reuniao',status:'pendente'});setShowNew(false);addToast('Evento criado!','success')
+    const {data}=await sb.from('meetings').insert({company_id:company.id,...form,created_by:user.id}).select().single()
+    if(data){setMeetings(ms=>[...ms,data]);setForm({event_type:'reuniao',status:'pendente'});setShowNew(false);addToast('Evento criado!','success')}
   }
 
   const updateStatus=async(id:string,status:string)=>{
@@ -870,7 +1110,7 @@ function CalendarView({company,addToast,user,dark}:any){
 
   const TC:any={reuniao:dark?'bg-violet-500/20 text-violet-300 border-violet-500/30':'bg-violet-100 text-violet-700 border-violet-300',visita:dark?'bg-blue-500/20 text-blue-300 border-blue-500/30':'bg-blue-100 text-blue-700 border-blue-300',instalacao:dark?'bg-emerald-500/20 text-emerald-300 border-emerald-500/30':'bg-emerald-100 text-emerald-700 border-emerald-300'}
   const TL:any={reuniao:'Reunião',visita:'Visita',instalacao:'Instalação'}
-  const SC:any={confirmado:'text-emerald-400',pendente:'text-amber-400',cancelado:'text-red-400'}
+  const SC:any={confirmado:dark?'text-emerald-400':'text-emerald-600',pendente:dark?'text-amber-400':'text-amber-600',cancelado:dark?'text-red-400':'text-red-600'}
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
@@ -905,7 +1145,6 @@ function CalendarView({company,addToast,user,dark}:any){
             </div>
           ))}
         </div>
-
         <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
           <p className={cx('text-xs font-semibold mb-3',T.text(dark))}>Próximos Eventos</p>
           <div className="space-y-2">
@@ -925,7 +1164,6 @@ function CalendarView({company,addToast,user,dark}:any){
           </div>
         </div>
       </div>
-
       <Modal dark={dark} open={showNew} onClose={()=>setShowNew(false)} title="Novo Evento" size="md">
         <div className="space-y-3">
           <Field dark={dark} label="Título" value={form.title} onChange={(v:string)=>setForm((f:any)=>({...f,title:v}))} required/>
@@ -939,12 +1177,11 @@ function CalendarView({company,addToast,user,dark}:any){
           </div>
           <Textarea dark={dark} label="Descrição" value={form.description} onChange={(v:string)=>setForm((f:any)=>({...f,description:v}))} placeholder="Detalhes..."/>
           <div className="flex gap-2 justify-end">
-            <button onClick={()=>setShowNew(false)} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-200 text-slate-600')}>Cancelar</button>
+            <button onClick={()=>setShowNew(false)} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-300 text-slate-600')}>Cancelar</button>
             <button onClick={create} className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-medium transition-all">Criar</button>
           </div>
         </div>
       </Modal>
-
       <Modal dark={dark} open={!!sel} onClose={()=>setSel(null)} title="Detalhes do Evento" size="sm">
         {sel&&<div className="space-y-3">
           <div className={cx('px-2.5 py-1.5 rounded-xl border text-xs font-medium inline-block',TC[sel.event_type])}>{TL[sel.event_type]}</div>
@@ -975,7 +1212,6 @@ function Colaboradores({company,user,addToast,dark}:any){
   const [creating,setCreating]=useState(false)
   const [editRole,setEditRole]=useState<any>(null)
   const [delConfirm,setDelConfirm]=useState<any>(null)
-  // Gestor não pode mexer em founder
   const canManage=['founder','gestor'].includes(user.role)
 
   useEffect(()=>{load()},[])
@@ -1001,8 +1237,7 @@ function Colaboradores({company,user,addToast,dark}:any){
 
   const updateRole=async()=>{
     if(!editRole) return
-    // Gestor não pode mudar role de founder
-    if(user.role==='gestor'&&editRole.originalRole==='founder'){addToast('Sem permissão para alterar o Founder.','error');return}
+    if(user.role==='gestor'&&editRole.originalRole==='founder'){addToast('Sem permissão.','error');return}
     const {error}=await sb.from('users').update({role:editRole.role,updated_at:new Date().toISOString()}).eq('id',editRole.id)
     if(error){addToast('Erro ao atualizar.','error');return}
     setColabs(cs=>cs.map(c=>c.id===editRole.id?{...c,role:editRole.role}:c));setEditRole(null);addToast('Cargo atualizado!','success')
@@ -1010,11 +1245,10 @@ function Colaboradores({company,user,addToast,dark}:any){
 
   const remove=async()=>{
     if(!delConfirm) return
-    // Gestor não pode remover founder
-    if(user.role==='gestor'&&delConfirm.role==='founder'){addToast('Sem permissão para remover o Founder.','error');setDelConfirm(null);return}
+    if(user.role==='gestor'&&delConfirm.role==='founder'){addToast('Sem permissão.','error');setDelConfirm(null);return}
     const {error}=await sb.from('users').update({active:false,updated_at:new Date().toISOString()}).eq('id',delConfirm.id)
     if(error){addToast('Erro ao remover.','error');return}
-    setColabs(cs=>cs.filter(c=>c.id!==delConfirm.id));setDelConfirm(null);addToast('Colaborador removido.','success')
+    setColabs(cs=>cs.filter(c=>c.id!==delConfirm.id));setDelConfirm(null);addToast('Removido.','success')
   }
 
   const RL:any={founder:'Founder',gestor:'Gestor',colaborador:'Colaborador'}
@@ -1031,7 +1265,6 @@ function Colaboradores({company,user,addToast,dark}:any){
           :<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {colabs.map(c=>{
               const isMe=c.id===user.id
-              // Gestor não pode editar/remover founder
               const canEditThis=canManage&&!isMe&&!(user.role==='gestor'&&c.role==='founder')
               return (
                 <div key={c.id} className={cx('p-4 rounded-2xl border',T.card(dark))}>
@@ -1060,7 +1293,6 @@ function Colaboradores({company,user,addToast,dark}:any){
           </div>
         }
       </div>
-
       <Modal dark={dark} open={showNew} onClose={()=>{setShowNew(false);setForm({role:'colaborador'})}} title="Cadastrar Colaborador" size="md">
         <div className="space-y-3">
           <Field dark={dark} label="Nome completo" value={form.full_name} onChange={(v:string)=>setForm((f:any)=>({...f,full_name:v}))} required icon={User}/>
@@ -1072,43 +1304,45 @@ function Colaboradores({company,user,addToast,dark}:any){
           </div>
           <Sel dark={dark} label="Cargo" value={form.role} onChange={(v:string)=>setForm((f:any)=>({...f,role:v}))} options={[{value:'colaborador',label:'Colaborador'},{value:'gestor',label:'Gestor'},...(user.role==='founder'?[{value:'founder',label:'Founder'}]:[])]}/>
           <div className="flex gap-2 justify-end pt-2">
-            <button onClick={()=>{setShowNew(false);setForm({role:'colaborador'})}} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-200 text-slate-600')}>Cancelar</button>
+            <button onClick={()=>{setShowNew(false);setForm({role:'colaborador'})}} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-300 text-slate-600')}>Cancelar</button>
             <button onClick={create} disabled={creating} className="px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-medium disabled:opacity-60 transition-all">{creating?'Cadastrando...':'Cadastrar'}</button>
           </div>
         </div>
       </Modal>
-
       <Modal dark={dark} open={!!editRole} onClose={()=>setEditRole(null)} title={`Cargo — ${editRole?.full_name}`} size="sm">
         {editRole&&<div className="space-y-4">
           <Sel dark={dark} label="Novo cargo" value={editRole.role} onChange={(v:string)=>setEditRole((e:any)=>({...e,role:v}))} options={[{value:'colaborador',label:'Colaborador'},{value:'gestor',label:'Gestor'},...(user.role==='founder'?[{value:'founder',label:'Founder'}]:[])]}/>
           <div className="flex gap-2 justify-end">
-            <button onClick={()=>setEditRole(null)} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-200 text-slate-600')}>Cancelar</button>
+            <button onClick={()=>setEditRole(null)} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400':'border-slate-300 text-slate-600')}>Cancelar</button>
             <button onClick={updateRole} className="px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium active:scale-95 transition-all">Salvar</button>
           </div>
         </div>}
       </Modal>
-      <Confirm dark={dark} open={!!delConfirm} onClose={()=>setDelConfirm(null)} onOk={remove} title="Remover Colaborador" msg={`Remover "${delConfirm?.full_name}"? O acesso será revogado.`}/>
+      <Confirm dark={dark} open={!!delConfirm} onClose={()=>setDelConfirm(null)} onOk={remove} title="Remover Colaborador" msg={`Remover "${delConfirm?.full_name}"?`}/>
     </div>
   )
 }
 
 // ══════════════════════════════════════════════════════════════════
-// SETTINGS — apagar foto, sem aviso de bucket
+// SETTINGS — com troca de senha
 // ══════════════════════════════════════════════════════════════════
 function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCompany}:any){
   const [uForm,setUForm]=useState({display_name:user.display_name||'',email:user.email||''})
   const [cForm,setCForm]=useState({company_name:company.company_name||''})
+  const [pwForm,setPwForm]=useState({current:'',novo:'',confirm:''})
   const [saving,setSaving]=useState(false)
   const [savingC,setSavingC]=useState(false)
+  const [savingPw,setSavingPw]=useState(false)
   const [upAvatar,setUpAvatar]=useState(false)
   const [upLogo,setUpLogo]=useState(false)
+  const [showPw,setShowPw]=useState({c:false,n:false,cf:false})
   const canEditCompany=['founder','gestor'].includes(user.role)
   const RL:any={founder:'Founder',gestor:'Gestor',colaborador:'Colaborador'}
-  const RC:any={founder:'bg-amber-500/15 text-amber-400 border-amber-500/30',gestor:'bg-violet-500/15 text-violet-400 border-violet-500/30',colaborador:'bg-blue-500/15 text-blue-400 border-blue-500/30'}
+  const RC:any={founder:'bg-amber-500/15 text-amber-500 border-amber-500/30',gestor:'bg-violet-500/15 text-violet-500 border-violet-500/30',colaborador:'bg-blue-500/15 text-blue-500 border-blue-500/30'}
 
   const saveUser=async()=>{
     const dn=uForm.display_name.trim()
-    if(!dn){addToast('Nome de exibição é obrigatório.','error');return}
+    if(!dn){addToast('Nome obrigatório.','error');return}
     setSaving(true)
     const {error}=await sb.from('users').update({display_name:dn,full_name:dn,email:uForm.email.trim()||null,updated_at:new Date().toISOString()}).eq('id',user.id)
     setSaving(false)
@@ -1123,6 +1357,20 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
     setSavingC(false)
     if(error){addToast('Erro: '+error.message,'error');return}
     setCompany((c:any)=>({...c,company_name:cForm.company_name.trim()}));addToast('Empresa salva!','success')
+  }
+
+  const changePassword=async()=>{
+    if(!pwForm.current||!pwForm.novo||!pwForm.confirm){addToast('Preencha todos os campos.','error');return}
+    if(pwForm.novo!==pwForm.confirm){addToast('Nova senha e confirmação não coincidem.','error');return}
+    if(pwForm.novo.length<4){addToast('Senha muito curta (mínimo 4 caracteres).','error');return}
+    // Verificar senha atual
+    const {data:check}=await sb.from('users').select('id').eq('id',user.id).eq('password_hash',pwForm.current).single()
+    if(!check){addToast('Senha atual incorreta.','error');return}
+    setSavingPw(true)
+    const {error}=await sb.from('users').update({password_hash:pwForm.novo,updated_at:new Date().toISOString()}).eq('id',user.id)
+    setSavingPw(false)
+    if(error){addToast('Erro ao alterar senha.','error');return}
+    setPwForm({current:'',novo:'',confirm:''});addToast('Senha alterada com sucesso!','success')
   }
 
   const upload=async(file:File,bucket:string,path:string)=>{
@@ -1164,6 +1412,21 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
   }
 
   const cardCls=cx('p-4 rounded-2xl border',T.card(dark))
+  const PwField=({label,fk}:any)=>(
+    <div className="flex flex-col gap-1.5">
+      <label className={cx('text-xs font-medium',T.sub(dark))}>{label}</label>
+      <div className="relative">
+        <Lock size={13} className={cx('absolute left-3 top-1/2 -translate-y-1/2',T.muted(dark))}/>
+        <input type={showPw[fk as keyof typeof showPw]?'text':'password'} value={pwForm[fk as keyof typeof pwForm]}
+          onChange={e=>setPwForm(f=>({...f,[fk]:e.target.value}))}
+          className={cx('w-full pl-9 pr-9 py-2.5 rounded-lg border text-sm focus:outline-none focus:border-emerald-500/50',T.input(dark))}/>
+        <button type="button" onClick={()=>setShowPw(s=>({...s,[fk]:!s[fk as keyof typeof showPw]}))}
+          className={cx('absolute right-3 top-1/2 -translate-y-1/2',T.muted(dark))}>
+          {showPw[fk as keyof typeof showPw]?<EyeOff size={13}/>:<Eye size={13}/>}
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -1199,6 +1462,20 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
           </button>
         </div>
 
+        {/* Alterar Senha */}
+        <div className={cardCls}>
+          <p className={cx('text-xs font-semibold mb-4 flex items-center gap-2',T.text(dark))}><Lock size={13}/>Alterar Senha</p>
+          <div className="space-y-3">
+            <PwField label="Senha atual" fk="current"/>
+            <PwField label="Nova senha" fk="novo"/>
+            <PwField label="Confirmar nova senha" fk="confirm"/>
+          </div>
+          <button onClick={changePassword} disabled={savingPw}
+            className="mt-4 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-medium disabled:opacity-60 transition-all">
+            {savingPw?'Alterando...':'Alterar senha'}
+          </button>
+        </div>
+
         {/* Empresa */}
         {canEditCompany&&(
           <div className={cardCls}>
@@ -1206,7 +1483,7 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
             <div className="flex items-center gap-4 mb-4">
               <div className="relative">
                 {company.company_logo_url
-                  ?<img src={company.company_logo_url} className={cx('w-14 h-14 rounded-xl object-contain p-1 border',dark?'bg-white/5 border-white/10':'bg-slate-50 border-slate-200')} alt="logo"/>
+                  ?<img src={company.company_logo_url} className={cx('w-14 h-14 rounded-xl object-contain p-1 border',dark?'bg-white/5 border-white/10':'bg-slate-50 border-slate-300')} alt="logo"/>
                   :<div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center"><Zap size={22} className="text-white"/></div>
                 }
                 <label className={cx('absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center cursor-pointer shadow-md',upLogo&&'opacity-50')}>
@@ -1243,8 +1520,8 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
         </div>
 
         {/* Logout */}
-        <div className={cx('p-4 rounded-2xl border',dark?'border-red-500/10 bg-red-500/[0.02]':'border-red-200 bg-red-50/50')}>
-          <button onClick={onLogout} className="flex items-center gap-2 text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-lg text-sm transition-all w-full active:scale-95">
+        <div className={cx('p-4 rounded-2xl border',dark?'border-red-500/10 bg-red-500/[0.02]':'border-red-200 bg-red-50')}>
+          <button onClick={onLogout} className="flex items-center gap-2 text-red-500 hover:bg-red-500/10 px-3 py-2 rounded-lg text-sm transition-all w-full active:scale-95">
             <LogOut size={14}/>Sair da conta
           </button>
         </div>
@@ -1275,13 +1552,12 @@ function Suporte({company,user,addToast,dark}:any){
   }
 
   const SC:any={aberto:'warning',respondido:'success',fechado:'default'}
-  const cardCls=cx('p-4 rounded-2xl border',T.card(dark))
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
       <Header dark={dark} title="Suporte" subtitle="Fale com a equipe Flüxa"/>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className={cardCls}>
+        <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
           <p className={cx('text-xs font-semibold mb-3 flex items-center gap-2',T.text(dark))}><HeadphonesIcon size={13}/>Nova mensagem</p>
           <Textarea dark={dark} value={msg} onChange={setMsg} placeholder="Descreva sua dúvida ou problema..." rows={4}/>
           <button onClick={send} disabled={sending}
@@ -1291,7 +1567,7 @@ function Suporte({company,user,addToast,dark}:any){
         </div>
         <p className={cx('text-xs text-center',T.muted(dark))}>Respondemos em até 24h úteis via WhatsApp.</p>
         {tickets.length>0&&(
-          <div className={cardCls}>
+          <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
             <p className={cx('text-xs font-semibold mb-3',T.text(dark))}>Histórico</p>
             <div className="space-y-2">
               {tickets.map(t=>(
@@ -1335,7 +1611,13 @@ export default function App(){
     if(ur.data) setUsers(ur.data)
   }
 
-  const login=({company,user}:any)=>{setSession({company,user});loadData(company.id);addToast(`Bem-vindo, ${user.display_name||user.full_name}! 👋`,'success')}
+  const login=({company,user}:any)=>{
+    const isHub=company.company_slug===FLUXA_SLUG&&user.role==='founder'
+    setSession({company,user})
+    loadData(company.id)
+    setTab(isHub?'hub_dashboard':'dashboard')
+    addToast(`Bem-vindo, ${user.display_name||user.full_name}! 👋`,'success')
+  }
   const logout=()=>{setSession(null);setLeads([]);setFunnels([]);setUsers([]);setTab('dashboard')}
   const setUser=(fn:any)=>setSession((s:any)=>({...s,user:typeof fn==='function'?fn(s.user):fn}))
   const setCompany=(fn:any)=>setSession((s:any)=>({...s,company:typeof fn==='function'?fn(s.company):fn}))
@@ -1343,9 +1625,15 @@ export default function App(){
   if(!session) return <Login onLogin={login}/>
 
   const {company,user}=session
+  const isHub=company.company_slug===FLUXA_SLUG&&user.role==='founder'
   const p={company,user,addToast,leads,setLeads,funnels,users,role:user.role,dark}
 
   const pages:any={
+    // Hub pages
+    hub_dashboard: <HubDashboard dark={dark} addToast={addToast}/>,
+    hub_empresas:  <HubEmpresas dark={dark}/>,
+    hub_criar:     <HubCriarEmpresa dark={dark} addToast={addToast} setTab={setTab}/>,
+    // Normal CRM pages
     dashboard:     <Dashboard {...p}/>,
     pipeline:      <Pipeline {...p}/>,
     leads:         <LeadsTable {...p}/>,
@@ -1359,7 +1647,7 @@ export default function App(){
     <div className={cx('flex h-screen w-screen overflow-hidden',T.bg(dark))} style={{fontFamily:"'DM Sans',system-ui,sans-serif"}}>
       <Sidebar active={tab} setActive={setTab} company={company} user={user} onLogout={logout} open={sideOpen} setOpen={setSideOpen} dark={dark} setDark={setDark}/>
       <main className="flex-1 flex flex-col overflow-hidden relative min-w-0">
-        {pages[tab]||pages.dashboard}
+        {pages[tab]||pages[isHub?'hub_dashboard':'dashboard']}
       </main>
       <Toast toasts={toasts} rm={rmToast}/>
     </div>
