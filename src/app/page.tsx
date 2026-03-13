@@ -19,12 +19,13 @@ const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_
 const N8N = process.env.NEXT_PUBLIC_N8N_WEBHOOK || ''
 const cx = (...a: any[]) => a.filter(Boolean).join(' ')
 const FLUXA_SLUG = 'fluxa'
-const STAGES = ['Novo Lead','Qualificado','Reunião Marcada','Proposta','Fechado','Perdido']
+const STAGES = ['Novo Lead','Qualificado','Proposta','Negociação','Visita Agendada','Fechado','Perdido']
 const SM: Record<string,{dot:string,bg:string,text:string,border:string}> = {
   'Novo Lead':       {dot:'#60A5FA',bg:'bg-blue-500/15',   text:'text-blue-400',   border:'border-blue-500/30'},
   'Qualificado':     {dot:'#A78BFA',bg:'bg-violet-500/15', text:'text-violet-400', border:'border-violet-500/30'},
-  'Reunião Marcada': {dot:'#FBBF24',bg:'bg-amber-500/15',  text:'text-amber-400',  border:'border-amber-500/30'},
   'Proposta':        {dot:'#FB923C',bg:'bg-orange-500/15', text:'text-orange-400', border:'border-orange-500/30'},
+  'Negociação':      {dot:'#FBBF24',bg:'bg-amber-500/15',  text:'text-amber-400',  border:'border-amber-500/30'},
+  'Visita Agendada': {dot:'#38BDF8',bg:'bg-sky-500/15',    text:'text-sky-400',    border:'border-sky-500/30'},
   'Fechado':         {dot:'#34D399',bg:'bg-emerald-500/15',text:'text-emerald-400',border:'border-emerald-500/30'},
   'Perdido':         {dot:'#F87171',bg:'bg-red-500/15',    text:'text-red-400',    border:'border-red-500/30'},
 }
