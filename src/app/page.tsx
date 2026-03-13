@@ -3296,6 +3296,18 @@ export default function App(){
     if(ur.data) setUsers(ur.data)
   }
 
+  // Realtime — atualiza leads automaticamente sem precisar de F5
+  useEffect(()=>{
+    if(!session) return
+    const companyId=session.company.id
+    const reloadLeads=()=>sb.from('leads').select('*').eq('company_id',companyId).order('created_at',{ascending:false}).then(({data})=>{if(data) setLeads(data)})
+    const channel=sb.channel(`realtime_leads_${companyId}`)
+      .on('postgres_changes',{event:'*',schema:'public',table:'leads',filter:`company_id=eq.${companyId}`},()=>reloadLeads())
+      .on('postgres_changes',{event:'*',schema:'public',table:'lead_notes',filter:`company_id=eq.${companyId}`},()=>reloadLeads())
+      .subscribe()
+    return ()=>{ sb.removeChannel(channel) }
+  },[session?.company?.id])
+
   const login=({company,user}:any)=>{
     const isHub=company.company_slug===FLUXA_SLUG&&user.role==='founder'
     setSession({company,user})
