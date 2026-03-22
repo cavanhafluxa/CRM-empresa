@@ -1156,7 +1156,13 @@ function FluxaFunil({dark,addToast,onMenu}:any){
     setLoading(false)
   },[])
 
-  useEffect(()=>{load()},[load])
+  useEffect(()=>{
+    load()
+    const ch=sb.channel('realtime_fluxa_funil')
+      .on('postgres_changes',{event:'*',schema:'public',table:'fluxa_prospects'},()=>load())
+      .subscribe()
+    return ()=>{ sb.removeChannel(ch) }
+  },[load])
 
   const filtered=prospects.filter(p=>{
     const q=search.toLowerCase()
@@ -1332,10 +1338,16 @@ function FluxaProspects({dark,addToast,onMenu}:any){
   const PER=10
 
   useEffect(()=>{
-    sb.from('fluxa_prospects').select('*').order('updated_at',{ascending:false}).then(({data})=>{
+    const loadP=()=>sb.from('fluxa_prospects').select('*').order('updated_at',{ascending:false}).then(({data})=>{
       if(data) setProspects(data)
       setLoading(false)
     })
+    loadP()
+    const ch=sb.channel('realtime_fluxa_prospects')
+      .on('postgres_changes',{event:'*',schema:'public',table:'fluxa_prospects'},()=>loadP())
+      .on('postgres_changes',{event:'*',schema:'public',table:'fluxa_prospect_notas'},()=>loadP())
+      .subscribe()
+    return ()=>{ sb.removeChannel(ch) }
   },[])
 
   const filtered=prospects.filter(p=>{
@@ -2554,7 +2566,13 @@ function CalendarView({company,addToast,user,leads,dark,onMenu}:any){
   const [leadSearch,setLeadSearch]=useState('')
   const [showLeadDrop,setShowLeadDrop]=useState(false)
 
-  useEffect(()=>{load()},[])
+  useEffect(()=>{
+    load()
+    const ch=sb.channel(`realtime_meetings_${company.id}`)
+      .on('postgres_changes',{event:'*',schema:'public',table:'meetings',filter:`company_id=eq.${company.id}`},()=>load())
+      .subscribe()
+    return ()=>{ sb.removeChannel(ch) }
+  },[company.id])
   const load=async()=>{
     setLoading(true)
     const {data}=await sb.from('meetings').select('*').eq('company_id',company.id).order('start_at')
@@ -4220,14 +4238,26 @@ export default function App(){
     if(ur.data) setUsers(ur.data)
   }
 
-  // Realtime — atualiza leads automaticamente sem precisar de F5
+  // Realtime — atualiza todo o CRM automaticamente sem precisar de F5
   useEffect(()=>{
     if(!session) return
     const companyId=session.company.id
     const reloadLeads=()=>sb.from('leads').select('*').eq('company_id',companyId).order('created_at',{ascending:false}).then(({data})=>{if(data) setLeads(data)})
-    const channel=sb.channel(`realtime_leads_${companyId}`)
+    const reloadFunnels=()=>sb.from('funnels').select('*').eq('company_id',companyId).order('created_at').then(({data})=>{if(data) setFunnels(data)})
+    const reloadUsers=()=>sb.from('users').select('*').eq('company_id',companyId).eq('active',true).order('created_at').then(({data})=>{if(data) setUsers(data)})
+    const channel=sb.channel(`realtime_crm_${companyId}`)
+      // Leads & notas
       .on('postgres_changes',{event:'*',schema:'public',table:'leads',filter:`company_id=eq.${companyId}`},()=>reloadLeads())
       .on('postgres_changes',{event:'*',schema:'public',table:'lead_notes',filter:`company_id=eq.${companyId}`},()=>reloadLeads())
+      // Reuniões
+      .on('postgres_changes',{event:'*',schema:'public',table:'meetings',filter:`company_id=eq.${companyId}`},()=>reloadLeads())
+      // Funis e colunas do pipeline
+      .on('postgres_changes',{event:'*',schema:'public',table:'funnels',filter:`company_id=eq.${companyId}`},()=>reloadFunnels())
+      .on('postgres_changes',{event:'*',schema:'public',table:'pipeline_columns',filter:`company_id=eq.${companyId}`},()=>reloadLeads())
+      // Usuários e colaboradores
+      .on('postgres_changes',{event:'*',schema:'public',table:'users',filter:`company_id=eq.${companyId}`},()=>reloadUsers())
+      // Mensagens do chat ao vivo
+      .on('postgres_changes',{event:'*',schema:'public',table:'messages',filter:`company_id=eq.${companyId}`},()=>reloadLeads())
       .subscribe()
     return ()=>{ sb.removeChannel(channel) }
   },[session?.company?.id])
