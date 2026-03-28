@@ -32,29 +32,28 @@ const SM: Record<string,{dot:string,bg:string,text:string,border:string}> = {
 }
 
 // ── Theme ────────────────────────────────────────────────────────
-// Paleta Flüxa: Cinza escuro + Branco (#F1F1F1) + Azul Celeste (#38BDF8)
 const T = {
-  bg:     (d:boolean) => d ? 'bg-[#070b14]'      : 'bg-[#f1f1f5]',
-  card:   (d:boolean) => d ? 'bg-white/[0.04] border-white/[0.07]' : 'bg-white border-slate-200 shadow-sm',
-  cardHi: (d:boolean) => d ? 'bg-white/[0.06] border-white/[0.12]' : 'bg-white border-sky-200 shadow-md',
-  sidebar:(d:boolean) => d ? 'bg-[#060a12] border-white/[0.06]'    : 'bg-white border-slate-200',
-  header: (d:boolean) => d ? 'bg-[#060a12]/95 border-white/[0.06]' : 'bg-white/95 border-slate-200',
-  input:  (d:boolean) => d ? 'bg-white/[0.05] border-white/[0.08] text-white placeholder:text-slate-600 focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20' : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20',
-  text:   (d:boolean) => d ? 'text-[#f0f0f5]'    : 'text-slate-900',
-  sub:    (d:boolean) => d ? 'text-slate-300' : 'text-slate-600',
-  muted:  (d:boolean) => d ? 'text-slate-500' : 'text-slate-400',
-  nav:    (d:boolean) => d ? 'text-slate-400 hover:text-white hover:bg-white/[0.05]' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100',
-  navA:   (d:boolean) => d ? 'bg-sky-500/[0.12] text-sky-300' : 'bg-sky-50 text-sky-700 font-semibold',
-  modal:  (d:boolean) => d ? 'bg-[#0f1420] border-white/[0.09]'    : 'bg-white border-slate-300',
-  row:    (d:boolean) => d ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50',
-  tbl:    (d:boolean) => d ? 'bg-white/[0.02] border-white/[0.07]' : 'bg-white border-slate-200',
-  tblH:   (d:boolean) => d ? 'bg-white/[0.03] border-white/[0.07] text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600',
+  bg:     (d:boolean) => d ? 'bg-[#07090f]'      : 'bg-[#f0f0f5]',
+  card:   (d:boolean) => d ? 'bg-white/[0.03] border-white/[0.05]' : 'bg-white border-slate-200/80 shadow-sm',
+  cardHi: (d:boolean) => d ? 'bg-white/[0.05] border-white/[0.10]' : 'bg-white border-sky-200 shadow-md',
+  sidebar:(d:boolean) => d ? 'bg-[#07090f] border-white/[0.05]'    : 'bg-white border-slate-200/60',
+  header: (d:boolean) => d ? 'bg-[#07090f]/90 border-white/[0.04]' : 'bg-white/90 border-slate-200/60',
+  input:  (d:boolean) => d ? 'bg-white/[0.04] border-white/[0.07] text-white placeholder:text-slate-600 focus:border-sky-500/40 focus:ring-1 focus:ring-sky-500/10' : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20',
+  text:   (d:boolean) => d ? 'text-[#eeeef2]'    : 'text-slate-900',
+  sub:    (d:boolean) => d ? 'text-slate-400' : 'text-slate-500',
+  muted:  (d:boolean) => d ? 'text-slate-600' : 'text-slate-400',
+  nav:    (d:boolean) => d ? 'text-slate-500 hover:text-slate-100 hover:bg-white/[0.04]' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50',
+  navA:   (d:boolean) => d ? 'bg-white/[0.07] text-white' : 'bg-sky-50 text-sky-700',
+  modal:  (d:boolean) => d ? 'bg-[#0d1018] border-white/[0.07]'    : 'bg-white border-slate-200',
+  row:    (d:boolean) => d ? 'hover:bg-white/[0.025]' : 'hover:bg-slate-50',
+  tbl:    (d:boolean) => d ? 'bg-white/[0.02] border-white/[0.05]' : 'bg-white border-slate-200',
+  tblH:   (d:boolean) => d ? 'bg-white/[0.02] border-white/[0.05] text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-500',
   tblB:   (d:boolean) => d ? 'border-white/[0.04]' : 'border-slate-100',
-  sel:    (d:boolean) => d ? 'bg-[#0f1420] text-white'             : 'bg-white text-slate-900',
-  divider:(d:boolean) => d ? 'border-white/[0.06]' : 'border-slate-200',
-  statCard:(d:boolean,color:string) => d
-    ? `bg-gradient-to-br ${color} border-white/[0.07]`
-    : `bg-white border-slate-300 shadow-sm`,
+  sel:    (d:boolean) => d ? 'bg-[#0d1018] text-white'             : 'bg-white text-slate-900',
+  divider:(d:boolean) => d ? 'border-white/[0.05]' : 'border-slate-200',
+  statCard:(d:boolean,_color:string) => d
+    ? `bg-white/[0.03] border-white/[0.05]`
+    : `bg-white border-slate-200/80 shadow-sm`,
   tr: 'transition-all duration-150 ease-in-out',
 }
 
@@ -98,14 +97,14 @@ function Av({name,url,size='md'}:{name:string,url?:string,size?:string}){
 
 function Bdg({children,v='default'}:any){
   const vs:any={
-    default:'bg-slate-500/20 text-slate-500 border-slate-400/30',
-    success:'bg-sky-500/15 text-sky-600 border-sky-400/40',
-    warning:'bg-amber-500/15 text-amber-600 border-amber-400/40',
-    danger: 'bg-red-500/15 text-red-600 border-red-400/40',
-    info:   'bg-blue-500/15 text-blue-600 border-blue-400/40',
-    violet: 'bg-violet-500/15 text-violet-600 border-violet-400/40',
+    default:'bg-white/[0.06] text-slate-400 border-white/[0.07]',
+    success:'bg-sky-500/10 text-sky-400 border-sky-500/20',
+    warning:'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    danger: 'bg-red-500/10 text-red-400 border-red-500/20',
+    info:   'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    violet: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
   }
-  return <span className={cx('inline-flex items-center gap-1 border rounded-full font-medium px-2 py-0.5 text-xs',vs[v])}>{children}</span>
+  return <span className={cx('inline-flex items-center gap-1 border rounded-full px-2 py-0.5 text-[10px] font-medium',vs[v])}>{children}</span>
 }
 
 function Empty({icon:Icon,title,description,action,dark=true}:any){
@@ -185,12 +184,12 @@ function Textarea({label,value,onChange,placeholder,rows=3,dark=true}:any){
 
 function Header({title,subtitle,actions,onMenu,dark=true}:any){
   return (
-    <div className={cx('h-14 px-4 flex items-center justify-between border-b backdrop-blur-xl shrink-0 sticky top-0 z-10',T.header(dark))}>
+    <div className={cx('h-[52px] px-5 flex items-center justify-between border-b backdrop-blur-xl shrink-0 sticky top-0 z-10',T.header(dark))}>
       <div className="flex items-center gap-3">
-        <button onClick={onMenu} className={cx('sm:hidden w-8 h-8 rounded-xl flex items-center justify-center',T.tr,dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-500')}><Menu size={18}/></button>
+        <button onClick={onMenu} className={cx('sm:hidden w-7 h-7 rounded-lg flex items-center justify-center',T.tr,dark?'hover:bg-white/10 text-slate-500':'hover:bg-slate-100 text-slate-500')}><Menu size={16}/></button>
         <div>
-          <h1 className={cx('text-sm font-bold leading-tight tracking-tight',T.text(dark))}>{title}</h1>
-          {subtitle&&<p className={cx('text-[11px] font-medium mt-0.5',T.muted(dark))}>{subtitle}</p>}
+          <h1 className={cx('text-[15px] font-bold leading-none',T.text(dark))}>{title}</h1>
+          {subtitle&&<p className={cx('text-[11px] mt-1',T.muted(dark))}>{subtitle}</p>}
         </div>
       </div>
       <div className="flex items-center gap-2">{actions}</div>
@@ -416,76 +415,64 @@ function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDa
 
   const NavBtn=({id,label,icon:Icon}:any)=>(
     <button onClick={()=>{setActive(id);setOpen(false)}}
-      className={cx('relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm',T.tr,
+      className={cx('relative w-full flex items-center gap-2.5 px-3 py-2 rounded-xl',T.tr,
         active===id ? T.navA(dark) : T.nav(dark))}>
-      {active===id&&<span className={cx('absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full',dark?'bg-sky-400':'bg-sky-500')}/>}
-      <Icon size={15} className={cx('shrink-0',active===id?(dark?'text-sky-400':'text-sky-600'):'')}/>
-      <span className={cx(active===id?'font-semibold':'font-medium')}>{label}</span>
+      {active===id&&<span className={cx('absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full',dark?'bg-sky-400':'bg-sky-500')}/>}
+      <Icon size={14} className={cx('shrink-0',active===id?(dark?'text-sky-400':'text-sky-500'):'opacity-50')}/>
+      <span className={cx('text-[13px]',active===id?'font-semibold':'font-medium')}>{label}</span>
     </button>
   )
 
   const inner=(
     <div className={cx('flex flex-col h-full border-r',T.sidebar(dark))}>
-      <div className={cx('flex items-center gap-2.5 px-4 h-14 border-b shrink-0',dark?'border-white/[0.06]':'border-slate-200')}>
+      <div className="flex items-center gap-2.5 px-4 h-[52px] shrink-0">
         {company.company_logo_url
-          ?<img src={company.company_logo_url} className="w-8 h-8 rounded-lg object-contain" alt="logo"/>
-          :<div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center shrink-0"><Zap size={14} className="text-white"/></div>
+          ?<img src={company.company_logo_url} className="w-7 h-7 rounded-lg object-contain" alt="logo"/>
+          :<div className="w-7 h-7 rounded-lg bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center shrink-0"><Zap size={13} className="text-white"/></div>
         }
         <div className="min-w-0 flex-1">
-          <p className={cx('text-xs font-bold truncate',T.text(dark))}>{company.company_name}</p>
-          <p className={cx('text-[10px]',T.muted(dark))}>@{company.company_slug}</p>
+          <p className={cx('text-[13px] font-bold truncate',T.text(dark))}>{company.company_name}</p>
         </div>
-        <button onClick={()=>setOpen(false)} className={cx('sm:hidden',dark?'text-slate-500':'text-slate-400')}><X size={16}/></button>
+        <button onClick={()=>setOpen(false)} className={cx('sm:hidden',dark?'text-slate-500':'text-slate-400')}><X size={15}/></button>
       </div>
-      {isHub&&(
-        <div className="px-3 py-2">
-          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20">
-            <Zap size={10} className="text-sky-400"/>
-            <span className="text-[10px] font-semibold text-sky-400">Hub de Controle</span>
-          </div>
-        </div>
-      )}
       <nav className="flex-1 px-2 py-2 overflow-y-auto">
-        <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
-          <span className={cx('text-[9px] font-bold tracking-widest uppercase shrink-0',T.muted(dark))}>
-            {isHub?'Hub de Controle':company.company_name}
-          </span>
-          <div className={cx('flex-1 h-px',dark?'bg-white/[0.06]':'bg-slate-200')}/>
-        </div>
+        {isHub&&(
+          <p className={cx('text-[10px] font-semibold uppercase tracking-[0.1em] px-3 pb-1.5 pt-0.5',T.muted(dark))}>Hub</p>
+        )}
         <div className="space-y-0.5">
           {topNav.map(n=><NavBtn key={n.id} {...n}/>)}
         </div>
       </nav>
-      <div className={cx('px-2 py-2 border-t space-y-0.5',dark?'border-white/[0.06]':'border-slate-200')}>
+      <div className={cx('px-2 pt-1 pb-1.5 border-t space-y-0.5',dark?'border-white/[0.05]':'border-slate-200')}>
         {bottomNav.map(n=><NavBtn key={n.id} {...n}/>)}
       </div>
-      <div className={cx('p-2 border-t',dark?'border-white/[0.06]':'border-slate-200')}>
+      <div className={cx('px-3 py-3 border-t',dark?'border-white/[0.05]':'border-slate-100')}>
         <button onClick={()=>setDark((d:boolean)=>!d)}
-          className={cx('w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm mb-1',T.nav(dark))}>
-          <span className="text-base">{dark?'☀️':'🌙'}</span>
-          <span className={cx('font-medium text-sm',dark?'text-slate-400':'text-slate-600')}>{dark?'Modo Claro':'Modo Escuro'}</span>
+          className={cx('w-full flex items-center gap-2.5 px-2 py-1.5 rounded-xl mb-2',T.nav(dark))}>
+          <span className="text-sm">{dark?'☀️':'🌙'}</span>
+          <span className={cx('text-[12px]',dark?'text-slate-500':'text-slate-500')}>{dark?'Modo Claro':'Modo Escuro'}</span>
         </button>
-        <div className={cx('flex items-center gap-2.5 px-3 py-2.5 rounded-xl border',T.tr,dark?'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.05]':'bg-slate-50 border-slate-100 hover:bg-slate-100')}>
+        <div className={cx('flex items-center gap-2 px-1 py-1.5 rounded-xl',T.tr,dark?'hover:bg-white/[0.04]':'hover:bg-slate-50')}>
           <Av name={user.display_name||user.full_name} size="sm" url={user.avatar_url}/>
           <div className="flex-1 min-w-0">
-            <p className={cx('text-xs font-semibold truncate',T.text(dark))}>{user.display_name||user.full_name}</p>
+            <p className={cx('text-[13px] font-semibold truncate leading-none mb-0.5',T.text(dark))}>{user.display_name||user.full_name}</p>
             {user._superadmin
-              ? <p className="text-[10px] font-bold text-sky-400">⚡ Superadmin</p>
-              : <p className={cx('text-[10px] font-semibold',RC[user.role])}>{RL[user.role]}</p>
+              ? <p className="text-[10px] text-sky-400">⚡ Superadmin</p>
+              : <p className={cx('text-[10px]',RC[user.role])}>{RL[user.role]}</p>
             }
           </div>
-          <button onClick={onLogout} className={cx('p-1 rounded-lg',T.tr,dark?'text-slate-600 hover:text-red-400 hover:bg-red-400/10':'text-slate-400 hover:text-red-500 hover:bg-red-50')}><LogOut size={13}/></button>
+          <button onClick={onLogout} className={cx('p-1.5 rounded-lg',T.tr,dark?'text-slate-600 hover:text-red-400 hover:bg-red-400/10':'text-slate-400 hover:text-red-500 hover:bg-red-50')}><LogOut size={12}/></button>
         </div>
       </div>
     </div>
   )
   return (
     <>
-      <aside className="hidden sm:flex w-56 shrink-0 h-screen flex-col">{inner}</aside>
+      <aside className="hidden sm:flex w-52 shrink-0 h-screen flex-col">{inner}</aside>
       {open&&(
         <div className="sm:hidden fixed inset-0 z-[150]">
           <div className="absolute inset-0 bg-black/60" onClick={()=>setOpen(false)}/>
-          <div className="absolute left-0 top-0 bottom-0 w-64">{inner}</div>
+          <div className="absolute left-0 top-0 bottom-0 w-60">{inner}</div>
         </div>
       )}
     </>
@@ -539,12 +526,10 @@ function Dashboard({leads,company,addToast,dark,onMenu}:any){
       }/>
       <div className="p-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          {stats.map(({label,val,icon:Icon,iconBg,iconCl,valCl,border})=>(
-            <div key={label} className={cx('relative p-4 rounded-2xl border overflow-hidden',T.tr,dark?'bg-white/[0.03] hover:bg-white/[0.05]':'bg-white hover:shadow-md shadow-sm',border)}>
-              <div className={cx('absolute -top-4 -right-4 w-20 h-20 rounded-full opacity-[0.07] blur-sm',iconBg)}/>
-              <div className={cx('w-9 h-9 rounded-xl flex items-center justify-center mb-3 relative',iconBg)}><Icon size={15} className={iconCl}/></div>
-              {loading?<Sk className="h-7 w-20 mb-1"/>:<p className={cx('text-2xl font-black mb-0.5 count-in leading-none',valCl)}>{val}</p>}
-              <p className={cx('text-[11px] font-semibold tracking-wide',dark?'text-slate-500':'text-slate-500')}>{label}</p>
+          {stats.map(({label,val,valCl})=>(
+            <div key={label} className={cx('p-5 rounded-2xl border',T.tr,dark?'bg-white/[0.03] border-white/[0.05] hover:bg-white/[0.05]':'bg-white border-slate-200/80 shadow-sm hover:shadow-md')}>
+              {loading?<Sk className="h-8 w-24 mb-2"/>:<p className={cx('text-[28px] font-black mb-1 count-in leading-none tabular-nums',valCl)}>{val}</p>}
+              <p className={cx('text-[10px] font-semibold tracking-widest uppercase',dark?'text-slate-600':'text-slate-400')}>{label}</p>
             </div>
           ))}
         </div>
@@ -676,14 +661,10 @@ function HubDashboard({dark,addToast,onMenu}:any){
   const hoje=now.toISOString().slice(0,10)
   const alertas=prospects.filter(p=>p.proxima_acao&&p.data_proxima_acao&&p.data_proxima_acao<=hoje&&p.stage!=='bofu_fechado'&&p.stage!=='perdido').slice(0,5)
 
-  const Stat=({label,val,sub,icon:Icon,grad,loading:l}:any)=>(
-    <div className={cx('relative p-5 rounded-2xl border overflow-hidden',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
-      <div className={cx('absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-6 translate-x-6',grad)}/>
-      <div className={cx('w-10 h-10 rounded-xl flex items-center justify-center mb-4',grad)}>
-        <Icon size={18} className="text-white"/>
-      </div>
-      {l?<Sk className="h-8 w-20 mb-1"/>:<p className={cx('text-2xl font-black mb-0.5',dark?'text-white':'text-slate-900')}>{val}</p>}
-      <p className={cx('text-xs font-semibold',dark?'text-slate-400':'text-slate-500')}>{label}</p>
+  const Stat=({label,val,sub,loading:l}:any)=>(
+    <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.05]':'bg-white border-slate-200/80 shadow-sm')}>
+      {l?<Sk className="h-8 w-24 mb-2"/>:<p className={cx('text-[26px] font-black mb-1 count-in leading-none tabular-nums',dark?'text-white':'text-slate-900')}>{val}</p>}
+      <p className={cx('text-[10px] font-semibold uppercase tracking-widest',dark?'text-slate-600':'text-slate-400')}>{label}</p>
       {sub&&<p className={cx('text-[10px] mt-1',dark?'text-slate-600':'text-slate-400')}>{sub}</p>}
     </div>
   )
@@ -691,18 +672,18 @@ function HubDashboard({dark,addToast,onMenu}:any){
   return (
     <div className="flex-1 overflow-y-auto">
       {/* Header */}
-      <div className={cx('flex items-center justify-between px-5 py-4 border-b sticky top-0 z-10',dark?'bg-slate-950/80 border-white/[0.06] backdrop-blur-md':'bg-white/80 border-slate-100 backdrop-blur-md')}>
+      <div className={cx('h-[52px] flex items-center justify-between px-5 border-b sticky top-0 z-10 backdrop-blur-xl',dark?'bg-[#07090f]/90 border-white/[0.04]':'bg-white/90 border-slate-200/60')}>
         <div className="flex items-center gap-3">
-          <button onClick={onMenu} className={cx('sm:hidden p-2 rounded-xl',dark?'hover:bg-white/10':'hover:bg-slate-100')}><Menu size={16} className={dark?'text-slate-400':'text-slate-500'}/></button>
+          <button onClick={onMenu} className={cx('sm:hidden w-7 h-7 rounded-lg flex items-center justify-center',dark?'hover:bg-white/10 text-slate-500':'hover:bg-slate-100 text-slate-500')}><Menu size={16}/></button>
           <div>
-            <h1 className={cx('text-base font-black',dark?'text-white':'text-slate-900')}>Flüxa Dashboard</h1>
-            <p className={cx('text-[11px]',dark?'text-slate-500':'text-slate-400')}>{now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</p>
+            <h1 className={cx('text-[15px] font-bold leading-none',dark?'text-[#eeeef2]':'text-slate-900')}>Flüxa Dashboard</h1>
+            <p className={cx('text-[11px] mt-1',dark?'text-slate-600':'text-slate-400')}>{now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className={cx('flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold',dark?'bg-sky-500/10 text-sky-400 border border-sky-500/20':'bg-sky-50 text-sky-700 border border-sky-200')}>
+          <div className={cx('flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border',dark?'bg-sky-500/10 text-sky-400 border-sky-500/20':'bg-sky-50 text-sky-600 border-sky-200')}>
             <div className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"/>
-            Plataforma Online
+            Online
           </div>
         </div>
       </div>
@@ -710,16 +691,16 @@ function HubDashboard({dark,addToast,onMenu}:any){
       <div className="p-5 space-y-5">
         {/* KPIs principais — linha 1 */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Stat loading={loading} label="Clientes Ativos" val={active.length} sub={`${total.length} total`} icon={Building2} grad="bg-gradient-to-br from-sky-400 to-sky-600"/>
-          <Stat loading={loading} label="MRR Fechado" val={`R$${mrrFechado.toLocaleString('pt-BR')}`} sub="contratos ativos" icon={DollarSign} grad="bg-gradient-to-br from-violet-400 to-purple-600"/>
-          <Stat loading={loading} label="Pipeline" val={`R$${mrrPipeline.toLocaleString('pt-BR')}`} sub={`${prospects.filter(p=>!['perdido','bofu_fechado'].includes(p.stage)).length} prospects`} icon={TrendingUp} grad="bg-gradient-to-br from-amber-400 to-orange-500"/>
-          <Stat loading={loading} label="Taxa Conversão" val={`${taxaConv}%`} sub={`${prospects.filter(p=>p.stage==='bofu_fechado').length} fechados`} icon={Target} grad="bg-gradient-to-br from-blue-400 to-indigo-600"/>
+          <Stat loading={loading} label="Clientes Ativos" val={active.length} sub={`${total.length} total`}/>
+          <Stat loading={loading} label="MRR Fechado" val={`R$${mrrFechado.toLocaleString('pt-BR')}`} sub="contratos ativos"/>
+          <Stat loading={loading} label="Pipeline" val={`R$${mrrPipeline.toLocaleString('pt-BR')}`} sub={`${prospects.filter(p=>!['perdido','bofu_fechado'].includes(p.stage)).length} prospects`}/>
+          <Stat loading={loading} label="Taxa Conversão" val={`${taxaConv}%`} sub={`${prospects.filter(p=>p.stage==='bofu_fechado').length} fechados`}/>
         </div>
 
         {/* Linha 2 — Gráfico atividade + Funil */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Atividade semanal */}
-          <div className={cx('lg:col-span-2 p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+          <div className={cx('lg:col-span-2 p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.05]':'bg-white border-slate-200/80 shadow-sm')}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className={cx('text-sm font-bold',dark?'text-white':'text-slate-900')}>Atividade Semanal</p>
@@ -745,7 +726,7 @@ function HubDashboard({dark,addToast,onMenu}:any){
           </div>
 
           {/* Distribuição Funil */}
-          <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+          <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.05]':'bg-white border-slate-200/80 shadow-sm')}>
             <p className={cx('text-sm font-bold mb-1',dark?'text-white':'text-slate-900')}>Funil de Vendas</p>
             <p className={cx('text-[11px] mb-4',dark?'text-slate-500':'text-slate-400')}>{prospects.filter(p=>p.stage!=='perdido').length} prospects ativos</p>
             {loading?<Sk className="h-40"/>:(
@@ -774,7 +755,7 @@ function HubDashboard({dark,addToast,onMenu}:any){
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
           {/* Alertas — ações vencidas */}
-          <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+          <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.05]':'bg-white border-slate-200/80 shadow-sm')}>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-xl bg-red-500/15 flex items-center justify-center"><AlertCircle size={14} className="text-red-400"/></div>
               <div>
@@ -801,7 +782,7 @@ function HubDashboard({dark,addToast,onMenu}:any){
           </div>
 
           {/* Clientes recentes */}
-          <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+          <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.05]':'bg-white border-slate-200/80 shadow-sm')}>
             <p className={cx('text-sm font-bold mb-1',dark?'text-white':'text-slate-900')}>Clientes Recentes</p>
             <p className={cx('text-[11px] mb-4',dark?'text-slate-500':'text-slate-400')}>{active.length} empresas ativas</p>
             {loading?<Sk className="h-40"/>:(
@@ -1656,7 +1637,7 @@ function FluxaCalendario({dark,addToast,onMenu}:any){
 
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {/* Grade do calendário */}
-        <div className={cx('rounded-2xl border overflow-hidden',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+        <div className={cx('rounded-2xl border overflow-hidden',dark?'bg-white/[0.03] border-white/[0.05]':'bg-white border-slate-200/80 shadow-sm')}>
           <div className={cx('flex items-center justify-between px-5 py-3 border-b',dark?'border-white/[0.06]':'border-slate-100')}>
             <button onClick={()=>setDate(new Date(y,mo-1))} className={cx('w-8 h-8 rounded-xl flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-600')}><ChevronLeft size={15}/></button>
             <p className={cx('text-sm font-bold',dark?'text-white':'text-slate-900')}>{MONTHS[mo]} {y}</p>
@@ -1697,7 +1678,7 @@ function FluxaCalendario({dark,addToast,onMenu}:any){
         </div>
 
         {/* Próximos eventos */}
-        <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.07]':'bg-white border-slate-100 shadow-sm')}>
+        <div className={cx('p-5 rounded-2xl border',dark?'bg-white/[0.03] border-white/[0.05]':'bg-white border-slate-200/80 shadow-sm')}>
           <div className="flex items-center justify-between mb-4">
             <p className={cx('text-sm font-bold',dark?'text-white':'text-slate-900')}>Próximas Calls & Eventos</p>
             <span className={cx('text-[10px] font-semibold px-2 py-1 rounded-lg',dark?'bg-white/5 text-slate-500':'bg-slate-100 text-slate-500')}>{upcoming.length} próximos</span>
@@ -2351,8 +2332,8 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark,onMen
   }
 
   const getUser=(id:string)=>users?.find((u:any)=>u.id===id)
-  const cardBg=dark?'bg-white/[0.04] border-white/[0.07] hover:border-sky-500/30 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-black/30':'bg-white border-slate-200 hover:border-sky-300 hover:shadow-md shadow-sm'
-  const colBg=(over:boolean)=>dark?(over?'border-sky-500/30 bg-sky-500/[0.04]':'border-white/[0.06] bg-white/[0.02]'):(over?'border-sky-300 bg-sky-50/50':'border-slate-200 bg-slate-50/50')
+  const cardBg=dark?'bg-white/[0.04] border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.06]':'bg-white border-slate-200 hover:border-slate-300 shadow-sm hover:shadow-md'
+  const colBg=(over:boolean)=>dark?(over?'border-sky-500/20 bg-sky-500/[0.03]':'border-white/[0.04] bg-white/[0.01]'):(over?'border-sky-200 bg-sky-50/30':'border-slate-200/50 bg-slate-50/30')
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
@@ -2374,29 +2355,30 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark,onMen
             const sv=sl.reduce((s:number,l:any)=>s+(l.valor_estimado||0),0)
             const m=SM[stage]; const isOver=dragOver===stage
             return (
-              <div key={stage} className={cx('flex flex-col rounded-2xl border transition-all flex-1 min-w-[170px]',colBg(isOver))}
+              <div key={stage} className={cx('flex flex-col rounded-2xl border transition-all flex-1 min-w-[170px] overflow-hidden',colBg(isOver))}
                 onDragOver={e=>{e.preventDefault();setDragOver(stage)}} onDrop={()=>drop(stage)} onDragLeave={()=>setDragOver(null)}>
-                <div className={cx('p-3 border-b',dark?'border-white/[0.06]':'border-slate-200')}>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{background:m.dot}}/>
+                {/* thin color strip */}
+                <div className="h-[3px] w-full shrink-0" style={{background:m.dot,opacity:0.7}}/>
+                <div className={cx('px-3 pt-2.5 pb-2 border-b',dark?'border-white/[0.04]':'border-slate-200')}>
+                  <div className="flex items-center gap-1.5">
                     {editCol===stage&&canEdit?(
                       <input autoFocus value={editVal} onChange={e=>setEditVal(e.target.value)}
                         onBlur={()=>saveCol(stage,editVal)} onKeyDown={e=>{if(e.key==='Enter')saveCol(stage,editVal);if(e.key==='Escape')setEditCol(null)}}
                         className={cx('flex-1 bg-transparent text-xs font-semibold focus:outline-none border-b border-sky-500/60 min-w-0',T.text(dark))}/>
                     ):(
-                      <span className={cx('text-xs font-semibold truncate flex-1',T.text(dark))}>{lbl(stage)}</span>
+                      <span className={cx('text-[11px] font-semibold truncate flex-1',T.sub(dark))}>{lbl(stage)}</span>
                     )}
-                    {canEdit&&<button onClick={()=>{setEditCol(stage);setEditVal(lbl(stage))}} className={T.muted(dark)}><PenLine size={10}/></button>}
-                    <span className={cx('text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0',m.bg,m.text)}>{sl.length}</span>
+                    {canEdit&&<button onClick={()=>{setEditCol(stage);setEditVal(lbl(stage))}} className={cx(T.muted(dark),'opacity-0 group-hover:opacity-100')}><PenLine size={9}/></button>}
+                    <span className={cx('text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0',m.bg,m.text)}>{sl.length}</span>
                   </div>
-                  <p className={cx('text-[10px]',T.muted(dark))}>R${sv.toLocaleString('pt-BR')}</p>
+                  <p className={cx('text-[10px] mt-0.5',T.muted(dark))}>R${sv.toLocaleString('pt-BR')}</p>
                 </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
                   {sl.map((lead:any)=>{
                     const assignee=lead.assigned_to?getUser(lead.assigned_to):null
                     return (
                       <div key={lead.id} draggable onDragStart={()=>setDragId(lead.id)} onClick={()=>setSelected(lead)}
-                        className={cx('p-3 rounded-xl border cursor-pointer transition-all active:scale-95',cardBg)}>
+                        className={cx('p-3 rounded-xl border cursor-pointer transition-all active:scale-[0.98]',cardBg)}>
                         <p className={cx('text-xs font-semibold mb-1 leading-tight',T.text(dark))}>{lead.nome}</p>
                         <p className={cx('text-[10px] mb-2',T.muted(dark))}>{lead.servico||'—'}</p>
                         <div className="flex items-center justify-between">
