@@ -53,6 +53,7 @@ const T = {
   statCard:(d:boolean,color:string) => d
     ? `bg-gradient-to-br ${color} border-white/[0.07]`
     : `bg-white border-slate-300 shadow-sm`,
+  tr: 'transition-all duration-150 ease-in-out',
 }
 
 // ── Toast ────────────────────────────────────────────────────────
@@ -105,13 +106,24 @@ function Bdg({children,v='default'}:any){
   return <span className={cx('inline-flex items-center gap-1 border rounded-full font-medium px-2 py-0.5 text-xs',vs[v])}>{children}</span>
 }
 
+function Empty({icon:Icon,title,description,action,dark=true}:any){
+  return (
+    <div className={cx('flex flex-col items-center justify-center py-12 px-4 text-center rounded-2xl border-2 border-dashed',dark?'border-white/[0.07]':'border-slate-200')}>
+      {Icon&&<div className={cx('w-10 h-10 rounded-xl flex items-center justify-center mb-3',dark?'bg-white/[0.04]':'bg-slate-100')}><Icon size={18} className={T.muted(dark)}/></div>}
+      <p className={cx('text-sm font-semibold',T.text(dark))}>{title}</p>
+      {description&&<p className={cx('text-xs mt-1.5 max-w-[200px] leading-relaxed',T.muted(dark))}>{description}</p>}
+      {action&&<button onClick={action.onClick} className={cx('mt-4 flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold active:scale-95',T.tr)}><Plus size={11}/>{action.label}</button>}
+    </div>
+  )
+}
+
 function Modal({open,onClose,title,children,size='md',dark=true}:any){
   if(!open) return null
   const s:any={sm:'max-w-sm',md:'max-w-lg',lg:'max-w-2xl'}
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose}/>
-      <div className={cx('relative w-full shadow-2xl rounded-t-2xl sm:rounded-2xl max-h-[92vh] flex flex-col border',s[size],T.modal(dark))}>
+      <div className={cx('relative w-full shadow-2xl rounded-t-2xl sm:rounded-2xl max-h-[92vh] flex flex-col border modal-in',s[size],T.modal(dark))}>
         <div className={cx('flex items-center justify-between px-5 py-4 border-b shrink-0',dark?'border-white/[0.08]':'border-slate-200')}>
           <h2 className={cx('text-sm font-semibold',T.text(dark))}>{title}</h2>
           <button onClick={onClose} className={cx('w-7 h-7 rounded-lg flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-500')}><X size={15}/></button>
@@ -396,8 +408,16 @@ function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDa
           </div>
         </div>
       )}
-      <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
-        {topNav.map(n=><NavBtn key={n.id} {...n}/>)}
+      <nav className="flex-1 px-2 py-2 overflow-y-auto">
+        <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
+          <span className={cx('text-[9px] font-bold tracking-widest uppercase shrink-0',T.muted(dark))}>
+            {isHub?'Hub de Controle':company.company_name}
+          </span>
+          <div className={cx('flex-1 h-px',dark?'bg-white/[0.06]':'bg-slate-200')}/>
+        </div>
+        <div className="space-y-0.5">
+          {topNav.map(n=><NavBtn key={n.id} {...n}/>)}
+        </div>
       </nav>
       <div className={cx('px-2 py-2 border-t space-y-0.5',dark?'border-white/[0.06]':'border-slate-200')}>
         {bottomNav.map(n=><NavBtn key={n.id} {...n}/>)}
@@ -2213,6 +2233,15 @@ function LeadModal({lead,open,onClose,onSave,onDelete,role,addToast,funnels,comp
 // ══════════════════════════════════════════════════════════════════
 // PIPELINE
 // ══════════════════════════════════════════════════════════════════
+function stageAge(updatedAt:string){
+  const ms=Date.now()-new Date(updatedAt||Date.now()).getTime()
+  const d=Math.floor(ms/86400000)
+  if(d===0) return 'hoje'
+  if(d===1) return '1d'
+  if(d<30) return `${d}d`
+  return `${Math.floor(d/30)}m`
+}
+
 function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark,onMenu}:any){
   const [selected,setSelected]=useState<any>(null)
   const [showNew,setShowNew]=useState(false)
@@ -2335,6 +2364,10 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark,onMen
                         <div className="flex items-center justify-between">
                           <span className={cx('text-xs font-bold',T.text(dark))}>R${(lead.valor_estimado||0).toLocaleString()}</span>
                           <div className="flex gap-0.5">{[1,2,3,4,5].map(n=><Star key={n} size={9} fill={n<=(lead.nivel_interesse||0)?'#FBBF24':'none'} stroke={n<=(lead.nivel_interesse||0)?'#FBBF24':dark?'#334155':'#cbd5e1'}/>)}</div>
+                        </div>
+                        <div className={cx('flex items-center gap-1 mt-1.5',T.muted(dark))}>
+                          <Clock size={9}/>
+                          <span className="text-[10px]">{stageAge(lead.updated_at)}</span>
                         </div>
                         {assignee&&(
                           <div className={cx('flex items-center gap-1.5 mt-2 pt-2 border-t',dark?'border-white/[0.06]':'border-slate-100')}>
@@ -2506,7 +2539,7 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,users,dark,onM
               })}
             </tbody>
           </table>
-          {paged.length===0&&<div className="py-12 text-center"><p className={cx('text-sm',T.muted(dark))}>Nenhum lead encontrado</p></div>}
+          {paged.length===0&&<div className="p-4"><Empty dark={dark} icon={Users} title="Nenhum lead encontrado" description={search||filterStage!=='all'?'Tente ajustar os filtros de busca':'Crie seu primeiro lead para começar'}/></div>}
         </div>
 
         <div className="sm:hidden space-y-2">
@@ -2527,7 +2560,7 @@ function LeadsTable({leads,setLeads,role,addToast,company,funnels,users,dark,onM
               </button>
             )
           })}
-          {paged.length===0&&<div className="py-12 text-center"><p className={cx('text-sm',T.muted(dark))}>Nenhum lead</p></div>}
+          {paged.length===0&&<Empty dark={dark} icon={Users} title="Nenhum lead encontrado" description={search||filterStage!=='all'?'Tente ajustar os filtros':'Crie o primeiro lead'}/>}
         </div>
 
         {pages>1&&(
@@ -2966,6 +2999,8 @@ function Colaboradores({company,user,addToast,dark,onMenu}:any){
       <div className="flex-1 overflow-y-auto p-4">
         {loading
           ?<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{[1,2,3].map(i=><Sk key={i} className="h-24 rounded-2xl"/>)}</div>
+          :colabs.length===0
+          ?<Empty dark={dark} icon={Users} title="Nenhum colaborador" description="Cadastre membros da equipe para colaborar no CRM" action={canManage?{label:'Cadastrar',onClick:()=>setShowNew(true)}:undefined}/>
           :<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {colabs.map(c=>{
               const isMe=c.id===user.id
