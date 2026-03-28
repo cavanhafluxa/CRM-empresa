@@ -34,22 +34,24 @@ const SM: Record<string,{dot:string,bg:string,text:string,border:string}> = {
 // ── Theme ────────────────────────────────────────────────────────
 // Paleta Flüxa: Cinza escuro + Branco (#F1F1F1) + Azul Celeste (#38BDF8)
 const T = {
-  bg:     (d:boolean) => d ? 'bg-[#0f1117]'      : 'bg-[#f1f1f1]',
-  card:   (d:boolean) => d ? 'bg-white/[0.04] border-white/[0.08]' : 'bg-white border-slate-200 shadow-sm',
-  sidebar:(d:boolean) => d ? 'bg-[#0a0d14] border-white/[0.06]'    : 'bg-white border-slate-200',
-  header: (d:boolean) => d ? 'bg-[#0a0d14]/90 border-white/[0.06]' : 'bg-white/90 border-slate-200',
-  input:  (d:boolean) => d ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-500' : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400',
-  text:   (d:boolean) => d ? 'text-[#f1f1f1]'    : 'text-slate-900',
-  sub:    (d:boolean) => d ? 'text-slate-300' : 'text-slate-700',
-  muted:  (d:boolean) => d ? 'text-slate-500' : 'text-slate-500',
+  bg:     (d:boolean) => d ? 'bg-[#070b14]'      : 'bg-[#f1f1f5]',
+  card:   (d:boolean) => d ? 'bg-white/[0.04] border-white/[0.07]' : 'bg-white border-slate-200 shadow-sm',
+  cardHi: (d:boolean) => d ? 'bg-white/[0.06] border-white/[0.12]' : 'bg-white border-sky-200 shadow-md',
+  sidebar:(d:boolean) => d ? 'bg-[#060a12] border-white/[0.06]'    : 'bg-white border-slate-200',
+  header: (d:boolean) => d ? 'bg-[#060a12]/95 border-white/[0.06]' : 'bg-white/95 border-slate-200',
+  input:  (d:boolean) => d ? 'bg-white/[0.05] border-white/[0.08] text-white placeholder:text-slate-600 focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20' : 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20',
+  text:   (d:boolean) => d ? 'text-[#f0f0f5]'    : 'text-slate-900',
+  sub:    (d:boolean) => d ? 'text-slate-300' : 'text-slate-600',
+  muted:  (d:boolean) => d ? 'text-slate-500' : 'text-slate-400',
   nav:    (d:boolean) => d ? 'text-slate-400 hover:text-white hover:bg-white/[0.05]' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100',
-  navA:   (d:boolean) => d ? 'bg-sky-500/15 text-sky-400' : 'bg-sky-100 text-sky-800 font-semibold',
-  modal:  (d:boolean) => d ? 'bg-[#13171f] border-white/10'       : 'bg-white border-slate-300',
+  navA:   (d:boolean) => d ? 'bg-sky-500/[0.12] text-sky-300' : 'bg-sky-50 text-sky-700 font-semibold',
+  modal:  (d:boolean) => d ? 'bg-[#0f1420] border-white/[0.09]'    : 'bg-white border-slate-300',
   row:    (d:boolean) => d ? 'hover:bg-white/[0.03]' : 'hover:bg-slate-50',
-  tbl:    (d:boolean) => d ? 'bg-white/[0.02] border-white/[0.08]' : 'bg-white border-slate-300',
-  tblH:   (d:boolean) => d ? 'bg-white/[0.03] border-white/[0.08] text-slate-400' : 'bg-slate-100 border-slate-300 text-slate-600',
-  tblB:   (d:boolean) => d ? 'border-white/[0.05]' : 'border-slate-200',
-  sel:    (d:boolean) => d ? 'bg-[#13171f] text-white'             : 'bg-white text-slate-900',
+  tbl:    (d:boolean) => d ? 'bg-white/[0.02] border-white/[0.07]' : 'bg-white border-slate-200',
+  tblH:   (d:boolean) => d ? 'bg-white/[0.03] border-white/[0.07] text-slate-400' : 'bg-slate-50 border-slate-200 text-slate-600',
+  tblB:   (d:boolean) => d ? 'border-white/[0.04]' : 'border-slate-100',
+  sel:    (d:boolean) => d ? 'bg-[#0f1420] text-white'             : 'bg-white text-slate-900',
+  divider:(d:boolean) => d ? 'border-white/[0.06]' : 'border-slate-200',
   statCard:(d:boolean,color:string) => d
     ? `bg-gradient-to-br ${color} border-white/[0.07]`
     : `bg-white border-slate-300 shadow-sm`,
@@ -137,10 +139,10 @@ function Modal({open,onClose,title,children,size='md',dark=true}:any){
 function Confirm({open,onClose,onOk,title,msg,dark=true}:any){
   return (
     <Modal open={open} onClose={onClose} title={title} size="sm" dark={dark}>
-      <p className={cx('text-sm mb-5',T.sub(dark))}>{msg}</p>
+      <p className={cx('text-sm mb-5 leading-relaxed',T.sub(dark))}>{msg}</p>
       <div className="flex gap-2 justify-end">
-        <button onClick={onClose} className={cx('px-4 py-2 rounded-lg border text-sm',dark?'border-white/10 text-slate-400 hover:bg-white/5':'border-slate-300 text-slate-600 hover:bg-slate-50')}>Cancelar</button>
-        <button onClick={onOk} className="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium">Confirmar</button>
+        <button onClick={onClose} className={cx('px-4 py-2 rounded-xl border text-sm',T.tr,dark?'border-white/10 text-slate-400 hover:bg-white/5':'border-slate-200 text-slate-600 hover:bg-slate-50')}>Cancelar</button>
+        <button onClick={onOk} className={cx('px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold shadow-md shadow-red-500/20',T.tr,'active:scale-95')}>Confirmar</button>
       </div>
     </Modal>
   )
@@ -149,12 +151,12 @@ function Confirm({open,onClose,onOk,title,msg,dark=true}:any){
 function Field({label,value,onChange,type='text',placeholder,required,icon:Icon,disabled,dark=true}:any){
   return (
     <div className="flex flex-col gap-1.5">
-      {label&&<label className={cx('text-xs font-medium',T.sub(dark))}>{label}{required&&<span className="text-red-400 ml-1">*</span>}</label>}
+      {label&&<label className={cx('text-xs font-semibold',T.sub(dark))}>{label}{required&&<span className="text-red-400 ml-1">*</span>}</label>}
       <div className="relative">
-        {Icon&&<Icon size={13} className={cx('absolute left-3 top-1/2 -translate-y-1/2',T.muted(dark))}/>}
+        {Icon&&<Icon size={13} className={cx('absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none',T.muted(dark))}/>}
         <input type={type} value={value??''} onChange={e=>onChange&&onChange(e.target.value)}
           placeholder={placeholder} disabled={disabled}
-          className={cx('w-full rounded-lg border text-sm focus:outline-none focus:border-sky-500/50 transition-all py-2.5',
+          className={cx('w-full rounded-xl border text-sm focus:outline-none transition-all py-2.5',
             Icon?'pl-9 pr-3':'px-3', T.input(dark), disabled&&'opacity-50 cursor-not-allowed')}/>
       </div>
     </div>
@@ -163,9 +165,9 @@ function Field({label,value,onChange,type='text',placeholder,required,icon:Icon,
 function Sel({label,value,onChange,options,required,dark=true}:any){
   return (
     <div className="flex flex-col gap-1.5">
-      {label&&<label className={cx('text-xs font-medium',T.sub(dark))}>{label}{required&&<span className="text-red-400 ml-1">*</span>}</label>}
+      {label&&<label className={cx('text-xs font-semibold',T.sub(dark))}>{label}{required&&<span className="text-red-400 ml-1">*</span>}</label>}
       <select value={value??''} onChange={e=>onChange(e.target.value)}
-        className={cx('w-full rounded-lg border text-sm focus:outline-none focus:border-sky-500/50 px-3 py-2.5 appearance-none cursor-pointer',T.input(dark))}>
+        className={cx('w-full rounded-xl border text-sm focus:outline-none px-3 py-2.5 appearance-none cursor-pointer transition-all',T.input(dark))}>
         {options.map((o:any)=><option key={o.value} value={o.value} className={T.sel(dark)}>{o.label}</option>)}
       </select>
     </div>
@@ -174,21 +176,21 @@ function Sel({label,value,onChange,options,required,dark=true}:any){
 function Textarea({label,value,onChange,placeholder,rows=3,dark=true}:any){
   return (
     <div className="flex flex-col gap-1.5">
-      {label&&<label className={cx('text-xs font-medium',T.sub(dark))}>{label}</label>}
+      {label&&<label className={cx('text-xs font-semibold',T.sub(dark))}>{label}</label>}
       <textarea value={value??''} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={rows}
-        className={cx('w-full rounded-lg border text-sm focus:outline-none focus:border-sky-500/50 px-3 py-2.5 resize-none',T.input(dark))}/>
+        className={cx('w-full rounded-xl border text-sm focus:outline-none px-3 py-2.5 resize-none transition-all',T.input(dark))}/>
     </div>
   )
 }
 
 function Header({title,subtitle,actions,onMenu,dark=true}:any){
   return (
-    <div className={cx('h-14 px-4 flex items-center justify-between border-b backdrop-blur-xl shrink-0',T.header(dark))}>
+    <div className={cx('h-14 px-4 flex items-center justify-between border-b backdrop-blur-xl shrink-0 sticky top-0 z-10',T.header(dark))}>
       <div className="flex items-center gap-3">
-        <button onClick={onMenu} className={cx('sm:hidden w-8 h-8 rounded-lg flex items-center justify-center',dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-500')}><Menu size={18}/></button>
+        <button onClick={onMenu} className={cx('sm:hidden w-8 h-8 rounded-xl flex items-center justify-center',T.tr,dark?'hover:bg-white/10 text-slate-400':'hover:bg-slate-100 text-slate-500')}><Menu size={18}/></button>
         <div>
-          <h1 className={cx('text-sm font-semibold leading-tight',T.text(dark))}>{title}</h1>
-          {subtitle&&<p className={cx('text-[11px]',T.muted(dark))}>{subtitle}</p>}
+          <h1 className={cx('text-sm font-bold leading-tight tracking-tight',T.text(dark))}>{title}</h1>
+          {subtitle&&<p className={cx('text-[11px] font-medium mt-0.5',T.muted(dark))}>{subtitle}</p>}
         </div>
       </div>
       <div className="flex items-center gap-2">{actions}</div>
@@ -267,35 +269,46 @@ function Login({onLogin}:any){
   }
 
   if(forgot) return (
-    <div className="min-h-screen bg-[#050812] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen bg-[#050812] flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="absolute top-[10%] left-[20%] w-[500px] h-[500px] bg-sky-500/5 rounded-full blur-[100px] pointer-events-none"/>
+      <div className="float-a absolute top-[14%] left-[10%] w-14 h-14 border border-sky-500/20 rounded-2xl rotate-12 opacity-50 pointer-events-none"/>
+      <div className="float-b absolute top-[22%] right-[10%] w-8 h-8 bg-sky-500/[0.08] rounded-xl rotate-45 pointer-events-none"/>
+      <div className="float-c absolute bottom-[22%] right-[9%] w-16 h-16 border border-blue-500/15 rounded-3xl -rotate-12 opacity-35 pointer-events-none"/>
+      <div className="relative w-full max-w-[360px] slide-up">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center"><Zap size={18} className="text-white"/></div>
-            <span className="text-xl font-bold text-white">Flüxa <span className="text-sky-400">CRM</span></span>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-400 to-sky-600 shadow-xl shadow-sky-500/30 mb-4">
+            <Zap size={22} className="text-white"/>
           </div>
+          <h1 className="text-2xl font-black text-white tracking-tight">Flüxa <span className="text-sky-400">CRM</span></h1>
         </div>
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
-          {forgotSent?(
-            <div className="text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-sky-500/20 flex items-center justify-center mx-auto"><CheckCircle size={22} className="text-sky-400"/></div>
-              <p className="text-white font-semibold text-sm">Solicitação enviada!</p>
-              <p className="text-slate-400 text-xs">Nossa equipe recebeu seu pedido e entrará em contato para redefinir sua senha.</p>
-              <button onClick={()=>{setForgot(false);setForgotSent(false)}} className="text-sky-400 text-xs hover:underline">Voltar ao login</button>
-            </div>
-          ):(
-            <div className="space-y-3">
-              <p className="text-white font-semibold text-sm mb-1">Esqueci minha senha</p>
-              <p className="text-slate-400 text-xs mb-3">Informe seus dados e nossa equipe irá redefinir sua senha.</p>
-              <Field label="Empresa" value={forgotSlug} onChange={setForgotSlug} placeholder="company-slug" icon={Building2}/>
-              <Field label="Usuário" value={forgotUser} onChange={setForgotUser} placeholder="seu-usuario" icon={User}/>
-              <button onClick={sendForgot} disabled={sending||!forgotSlug||!forgotUser}
-                className="w-full py-3 rounded-lg bg-gradient-to-r from-sky-500 to-sky-600 text-white text-sm font-semibold disabled:opacity-50 active:scale-95 transition-all">
-                {sending?'Enviando...':'Solicitar redefinição'}
-              </button>
-              <button onClick={()=>setForgot(false)} className="w-full text-slate-500 text-xs hover:text-slate-300 text-center">Voltar ao login</button>
-            </div>
-          )}
+        <div className="relative">
+          <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-sky-500/40 to-transparent"/>
+          <div className="bg-[#0d1220]/90 backdrop-blur-xl border border-white/[0.07] rounded-2xl p-6 shadow-2xl shadow-black/50">
+            {forgotSent?(
+              <div className="text-center space-y-4 py-2">
+                <div className="w-14 h-14 rounded-2xl bg-sky-500/15 flex items-center justify-center mx-auto border border-sky-500/20">
+                  <CheckCircle size={24} className="text-sky-400"/>
+                </div>
+                <p className="text-white font-bold text-sm">Solicitação enviada!</p>
+                <p className="text-slate-400 text-xs leading-relaxed">Nossa equipe recebeu seu pedido e entrará em contato para redefinir sua senha.</p>
+                <button onClick={()=>{setForgot(false);setForgotSent(false)}} className="text-sky-400 text-xs hover:underline transition-colors">← Voltar ao login</button>
+              </div>
+            ):(
+              <div className="space-y-3.5">
+                <div>
+                  <p className="text-white font-bold text-sm mb-0.5">Recuperar senha</p>
+                  <p className="text-slate-500 text-xs">Informe seus dados e a equipe Flüxa irá te ajudar.</p>
+                </div>
+                <Field label="Empresa" value={forgotSlug} onChange={setForgotSlug} placeholder="ex: minha-empresa" icon={Building2}/>
+                <Field label="Usuário" value={forgotUser} onChange={setForgotUser} placeholder="seu.usuario" icon={User}/>
+                <button onClick={sendForgot} disabled={sending||!forgotSlug||!forgotUser}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 text-white text-sm font-bold shadow-lg shadow-sky-500/20 disabled:opacity-50 active:scale-[0.98] transition-all">
+                  {sending?<span className="flex items-center justify-center gap-2"><RefreshCw size={13} className="animate-spin"/>Enviando...</span>:'Solicitar redefinição'}
+                </button>
+                <button onClick={()=>setForgot(false)} className="w-full text-center text-[11px] text-slate-600 hover:text-slate-400 transition-colors">← Voltar ao login</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -303,41 +316,65 @@ function Login({onLogin}:any){
 
   return (
     <div className="min-h-screen bg-[#050812] flex items-center justify-center px-4 relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-sky-500/8 rounded-full blur-3xl pointer-events-none"/>
-      <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-500/6 rounded-full blur-3xl pointer-events-none"/>
-      <div className="relative w-full max-w-sm">
+      {/* Ambient glow orbs */}
+      <div className="absolute top-[8%] left-[18%] w-[540px] h-[540px] bg-sky-500/[0.04] rounded-full blur-[100px] pointer-events-none"/>
+      <div className="absolute bottom-[8%] right-[12%] w-[380px] h-[380px] bg-violet-500/[0.04] rounded-full blur-[80px] pointer-events-none"/>
+      {/* Floating geometric shapes */}
+      <div className="float-a absolute top-[13%] left-[9%] w-14 h-14 border border-sky-500/[0.18] rounded-2xl rotate-12 pointer-events-none"/>
+      <div className="float-b absolute top-[21%] right-[9%] w-9 h-9 bg-sky-500/[0.07] rounded-xl rotate-45 pointer-events-none"/>
+      <div className="float-c absolute top-[57%] left-[6%] w-10 h-10 border border-violet-500/[0.14] rounded-xl -rotate-6 pointer-events-none"/>
+      <div className="float-d absolute bottom-[20%] right-[8%] w-16 h-16 border border-blue-500/[0.13] rounded-3xl -rotate-12 pointer-events-none"/>
+      <div className="float-e absolute bottom-[37%] left-[19%] w-5 h-5 bg-sky-400/[0.12] rounded rotate-45 pointer-events-none"/>
+      <div className="float-f absolute top-[42%] right-[5%] w-10 h-10 border border-sky-500/[0.09] rounded-full pointer-events-none"/>
+      <div className="float-a absolute bottom-[14%] left-[29%] w-7 h-7 border border-violet-400/[0.12] rounded-lg pointer-events-none" style={{animationDelay:'4s'}}/>
+      <div className="float-b absolute top-[72%] right-[24%] w-4 h-4 bg-blue-400/[0.08] rounded-sm rotate-45 pointer-events-none" style={{animationDelay:'2s'}}/>
+
+      <div className="relative w-full max-w-[360px] slide-up">
+        {/* Brand header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-2">
-            <img src="/logologin.png" alt="Flüxa" className="w-10 h-10 rounded-xl object-contain" onError={(e:any)=>{e.currentTarget.style.display='none'}}/>
-            <span className="text-2xl font-bold text-white">Flüxa <span className="text-sky-400">CRM</span></span>
+          <div className="inline-flex items-center justify-center w-[60px] h-[60px] rounded-2xl bg-gradient-to-br from-sky-400 to-sky-600 shadow-xl shadow-sky-500/30 mb-4">
+            <Zap size={24} className="text-white"/>
           </div>
-          <p className="text-slate-500 text-xs">Acesse o painel da sua empresa</p>
+          <h1 className="text-[26px] font-black text-white tracking-tight leading-none">Flüxa <span className="text-sky-400">CRM</span></h1>
+          <p className="text-slate-500 text-xs mt-2">Infraestrutura de vendas para negócios locais</p>
+          <div className="flex items-center justify-center gap-1.5 mt-3">
+            {['Sales',"Food's",'Care'].map(t=>(
+              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full border border-white/[0.07] text-slate-600 font-medium">{t}</span>
+            ))}
+          </div>
         </div>
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 backdrop-blur-xl">
-          <div className="space-y-3">
-            <Field label="Empresa" value={slug} onChange={setSlug} placeholder="Nome da empresa" required icon={Building2}/>
-            <Field label="Usuário" value={user} onChange={setUser} placeholder="Seu usuário" required icon={User}/>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-slate-400">Senha <span className="text-red-400">*</span></label>
-              <div className="relative">
-                <input type={show?'text':'password'} value={pass} onChange={e=>setPass(e.target.value)}
-                  placeholder="••••••••" onKeyDown={e=>e.key==='Enter'&&handle()}
-                  className="w-full pl-3 pr-9 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-sky-500/50"/>
-                <button type="button" onClick={()=>setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-                  {show?<EyeOff size={14}/>:<Eye size={14}/>}
-                </button>
+
+        {/* Card with gradient top-border */}
+        <div className="relative">
+          <div className="absolute inset-x-6 -top-px h-px bg-gradient-to-r from-transparent via-sky-500/50 to-transparent"/>
+          <div className="bg-[#0d1220]/90 backdrop-blur-xl border border-white/[0.07] rounded-2xl p-6 shadow-2xl shadow-black/60">
+            <div className="space-y-3.5">
+              <Field label="Empresa" value={slug} onChange={setSlug} placeholder="ex: minha-empresa" required icon={Building2}/>
+              <Field label="Usuário" value={user} onChange={setUser} placeholder="seu.usuario" required icon={User}/>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-slate-400">Senha <span className="text-red-400">*</span></label>
+                <div className="relative">
+                  <input type={show?'text':'password'} value={pass} onChange={e=>setPass(e.target.value)}
+                    placeholder="••••••••" onKeyDown={e=>e.key==='Enter'&&handle()}
+                    className="w-full pl-3 pr-9 py-2.5 rounded-lg bg-white/[0.05] border border-white/[0.08] text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 transition-all"/>
+                  <button type="button" onClick={()=>setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                    {show?<EyeOff size={14}/>:<Eye size={14}/>}
+                  </button>
+                </div>
               </div>
+              {err&&<div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs"><AlertCircle size={13} className="shrink-0"/>{err}</div>}
+              <button onClick={handle} disabled={loading}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-400 hover:to-sky-500 text-white text-sm font-bold shadow-lg shadow-sky-500/20 disabled:opacity-60 active:scale-[0.98] transition-all mt-1">
+              {loading?<span className="flex items-center justify-center gap-2"><RefreshCw size={13} className="animate-spin"/>Entrando...</span>:'Entrar no CRM →'}
+              </button>
             </div>
-            {err&&<div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs"><AlertCircle size={13}/>{err}</div>}
-            <button onClick={handle} disabled={loading}
-              className="w-full py-3 rounded-lg bg-gradient-to-r from-sky-500 to-sky-600 text-white text-sm font-semibold shadow-lg shadow-sky-500/20 disabled:opacity-60 active:scale-95 transition-all">
-              {loading?<span className="flex items-center justify-center gap-2"><RefreshCw size={13} className="animate-spin"/>Entrando...</span>:'Entrar'}
-            </button>
-            <button onClick={()=>setForgot(true)} className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-white/10 text-slate-400 text-xs hover:text-white hover:border-white/20 transition-all">
-              <Lock size={11}/>Esqueci minha senha
+            <button onClick={()=>setForgot(true)} className="w-full text-center text-[11px] text-slate-600 hover:text-slate-400 transition-colors mt-3 block">
+              Esqueceu a senha?
             </button>
           </div>
         </div>
+
+        <p className="text-center text-[10px] text-slate-700 mt-6">© 2026 Flüxa · Do primeiro contato ao caixa</p>
       </div>
     </div>
   )
@@ -379,11 +416,11 @@ function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDa
 
   const NavBtn=({id,label,icon:Icon}:any)=>(
     <button onClick={()=>{setActive(id);setOpen(false)}}
-      className={cx('w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all',
+      className={cx('relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm',T.tr,
         active===id ? T.navA(dark) : T.nav(dark))}>
-      <Icon size={16} className="shrink-0"/>
-      <span className="font-medium">{label}</span>
-      {active===id&&<div className="ml-auto w-1.5 h-1.5 rounded-full bg-sky-400"/>}
+      {active===id&&<span className={cx('absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full',dark?'bg-sky-400':'bg-sky-500')}/>}
+      <Icon size={15} className={cx('shrink-0',active===id?(dark?'text-sky-400':'text-sky-600'):'')}/>
+      <span className={cx(active===id?'font-semibold':'font-medium')}>{label}</span>
     </button>
   )
 
@@ -428,16 +465,16 @@ function Sidebar({active,setActive,company,user,onLogout,open,setOpen,dark,setDa
           <span className="text-base">{dark?'☀️':'🌙'}</span>
           <span className={cx('font-medium text-sm',dark?'text-slate-400':'text-slate-600')}>{dark?'Modo Claro':'Modo Escuro'}</span>
         </button>
-        <div className={cx('flex items-center gap-2.5 px-3 py-2 rounded-xl',dark?'bg-white/[0.02]':'bg-slate-50')}>
+        <div className={cx('flex items-center gap-2.5 px-3 py-2.5 rounded-xl border',T.tr,dark?'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.05]':'bg-slate-50 border-slate-100 hover:bg-slate-100')}>
           <Av name={user.display_name||user.full_name} size="sm" url={user.avatar_url}/>
           <div className="flex-1 min-w-0">
             <p className={cx('text-xs font-semibold truncate',T.text(dark))}>{user.display_name||user.full_name}</p>
             {user._superadmin
-              ? <p className="text-[10px] font-medium text-sky-400">⚡ Superadmin</p>
-              : <p className={cx('text-[10px] font-medium',RC[user.role])}>{RL[user.role]}</p>
+              ? <p className="text-[10px] font-bold text-sky-400">⚡ Superadmin</p>
+              : <p className={cx('text-[10px] font-semibold',RC[user.role])}>{RL[user.role]}</p>
             }
           </div>
-          <button onClick={onLogout} className={cx('transition-colors',dark?'text-slate-600 hover:text-red-400':'text-slate-400 hover:text-red-500')}><LogOut size={14}/></button>
+          <button onClick={onLogout} className={cx('p-1 rounded-lg',T.tr,dark?'text-slate-600 hover:text-red-400 hover:bg-red-400/10':'text-slate-400 hover:text-red-500 hover:bg-red-50')}><LogOut size={13}/></button>
         </div>
       </div>
     </div>
@@ -503,17 +540,18 @@ function Dashboard({leads,company,addToast,dark,onMenu}:any){
       <div className="p-4 space-y-4">
         <div className="grid grid-cols-2 gap-3">
           {stats.map(({label,val,icon:Icon,iconBg,iconCl,valCl,border})=>(
-            <div key={label} className={cx('p-4 rounded-2xl border',dark?'bg-white/[0.03]':'bg-white shadow-sm',border)}>
-              <div className={cx('w-9 h-9 rounded-xl flex items-center justify-center mb-3',iconBg)}><Icon size={16} className={iconCl}/></div>
-              {loading?<Sk className="h-7 w-20 mb-1"/>:<p className={cx('text-xl font-bold mb-0.5',valCl)}>{val}</p>}
-              <p className={cx('text-xs font-medium',dark?'text-slate-400':'text-slate-600')}>{label}</p>
+            <div key={label} className={cx('relative p-4 rounded-2xl border overflow-hidden',T.tr,dark?'bg-white/[0.03] hover:bg-white/[0.05]':'bg-white hover:shadow-md shadow-sm',border)}>
+              <div className={cx('absolute -top-4 -right-4 w-20 h-20 rounded-full opacity-[0.07] blur-sm',iconBg)}/>
+              <div className={cx('w-9 h-9 rounded-xl flex items-center justify-center mb-3 relative',iconBg)}><Icon size={15} className={iconCl}/></div>
+              {loading?<Sk className="h-7 w-20 mb-1"/>:<p className={cx('text-2xl font-black mb-0.5 count-in leading-none',valCl)}>{val}</p>}
+              <p className={cx('text-[11px] font-semibold tracking-wide',dark?'text-slate-500':'text-slate-500')}>{label}</p>
             </div>
           ))}
         </div>
 
         <div className={cx('p-4 rounded-2xl border overflow-hidden',T.card(dark))}>
-          <p className={cx('text-sm font-semibold mb-1',T.text(dark))}>Evolução de Leads</p>
-          <p className={cx('text-[11px] mb-3',T.muted(dark))}>Últimos 6 meses — dados reais</p>
+          <p className={cx('text-sm font-bold mb-0.5',T.text(dark))}>Evolução de Leads</p>
+          <p className={cx('text-[11px] mb-3',T.muted(dark))}>Últimos 6 meses</p>
           {loading?<Sk className="h-36"/>:(
             <div style={{height:140}}>
               <ResponsiveContainer width="100%" height="100%">
@@ -2313,8 +2351,8 @@ function Pipeline({leads,setLeads,role,addToast,company,funnels,users,dark,onMen
   }
 
   const getUser=(id:string)=>users?.find((u:any)=>u.id===id)
-  const cardBg=dark?'bg-slate-900/80 border-white/[0.07] hover:border-white/[0.15]':'bg-white border-slate-300 hover:border-slate-400 shadow-sm'
-  const colBg=(over:boolean)=>dark?(over?'border-white/20 bg-white/[0.05]':'border-white/[0.06] bg-white/[0.015]'):(over?'border-sky-300 bg-sky-50/30':'border-slate-300 bg-slate-50')
+  const cardBg=dark?'bg-white/[0.04] border-white/[0.07] hover:border-sky-500/30 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-black/30':'bg-white border-slate-200 hover:border-sky-300 hover:shadow-md shadow-sm'
+  const colBg=(over:boolean)=>dark?(over?'border-sky-500/30 bg-sky-500/[0.04]':'border-white/[0.06] bg-white/[0.02]'):(over?'border-sky-300 bg-sky-50/50':'border-slate-200 bg-slate-50/50')
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
@@ -3075,7 +3113,7 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
   const [upAvatar,setUpAvatar]=useState(false)
   const [upLogo,setUpLogo]=useState(false)
   const [showPw,setShowPw]=useState({c:false,n:false,cf:false})
-  const [settingsTab,setSettingsTab]=useState<'perfil'|'eli'|'fornecedores'>('perfil')
+  const [settingsTab,setSettingsTab]=useState<'perfil'|'aparencia'>('perfil')
   const canEditCompany=['founder','gestor'].includes(user.role)
   const RL:any={founder:'Founder',gestor:'Gestor',colaborador:'Colaborador'}
   const RC:any={founder:'bg-amber-500/15 text-amber-500 border-amber-500/30',gestor:'bg-violet-500/15 text-violet-500 border-violet-500/30',colaborador:'bg-blue-500/15 text-blue-500 border-blue-500/30'}
@@ -3098,8 +3136,7 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
   const [importingForn,setImportingForn]=useState(false)
 
   useEffect(()=>{
-    if(settingsTab==='eli'&&!eliLoaded) loadEli()
-    if(settingsTab==='fornecedores'&&!fornLoaded) loadFornecedores()
+    // eli/fornecedores são páginas separadas; este useEffect mantido por compatibilidade
   },[settingsTab])
 
   const loadEli=async()=>{
@@ -3284,12 +3321,12 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
       <Header dark={dark} onMenu={onMenu} title="Configurações"/>
       <div className="p-4 max-w-lg">
         {/* Abas */}
-        <div className={cx('flex gap-1 p-1 rounded-xl mb-4 border',T.card(dark))}>
-          {[{id:'perfil',label:'Perfil & Conta'}].map((t:any)=>(
+        <div className={cx('flex gap-1 p-1 rounded-2xl mb-5 border',T.card(dark))}>
+          {([{id:'perfil',label:'Perfil & Conta'},{id:'aparencia',label:'Aparência'}] as const).map((t)=>(
             <button key={t.id} onClick={()=>setSettingsTab(t.id)}
-              className={cx('flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all',
+              className={cx('flex-1 py-2 px-3 rounded-xl text-xs font-semibold',T.tr,
                 settingsTab===t.id
-                  ?(dark?'bg-sky-500/20 text-sky-400':'bg-sky-100 text-sky-700')
+                  ?(dark?'bg-sky-500/20 text-sky-300 shadow-sm':'bg-sky-100 text-sky-700')
                   :(dark?'text-slate-500 hover:text-slate-300':'text-slate-500 hover:text-slate-700')
               )}>{t.label}</button>
           ))}
@@ -3396,13 +3433,16 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
           </div>
         )}
 
-        {/* Tema */}
+        </div>}
+
+        {/* ── ABA APARÊNCIA ── */}
+        {settingsTab==='aparencia'&&<div className="space-y-4">
         <div className={cardCls}>
-          <p className={cx('text-xs font-semibold mb-3',T.text(dark))}>Aparência</p>
+          <p className={cx('text-sm font-bold mb-4',T.text(dark))}>Tema</p>
           <div className="flex items-center justify-between">
             <div>
               <p className={cx('text-sm font-medium',T.text(dark))}>Modo {dark?'Escuro':'Claro'}</p>
-              <p className={cx('text-xs',T.muted(dark))}>Altera o tema do CRM</p>
+              <p className={cx('text-xs mt-0.5',T.muted(dark))}>Altera o tema visual do CRM</p>
             </div>
             <button onClick={()=>setDark((d:boolean)=>!d)}
               className={cx('relative w-12 h-6 rounded-full transition-colors duration-300',dark?'bg-sky-500':'bg-slate-300')}>
@@ -3411,9 +3451,9 @@ function SettingsPage({user,company,dark,setDark,onLogout,addToast,setUser,setCo
           </div>
         </div>
 
-        {/* Logout */}
-        <div className={cx('p-4 rounded-2xl border',dark?'border-red-500/10 bg-red-500/[0.02]':'border-red-200 bg-red-50')}>
-          <button onClick={onLogout} className="flex items-center gap-2 text-red-500 hover:bg-red-500/10 px-3 py-2 rounded-lg text-sm transition-all w-full active:scale-95">
+        <div className={cx('p-4 rounded-2xl border',dark?'border-red-500/10 bg-red-500/[0.02]':'border-red-100 bg-red-50')}>
+          <p className={cx('text-xs font-semibold mb-3',dark?'text-slate-500':'text-slate-400')}>Sessão</p>
+          <button onClick={onLogout} className={cx('flex items-center gap-2 text-red-400 hover:text-red-300 px-3 py-2.5 rounded-xl text-sm font-medium w-full',T.tr,dark?'hover:bg-red-500/10':'hover:bg-red-100','active:scale-95')}>
             <LogOut size={14}/>Sair da conta
           </button>
         </div>
@@ -4042,15 +4082,21 @@ function Suporte({company,user,addToast,dark,onMenu}:any){
     <div className="flex-1 overflow-hidden flex flex-col">
       <Header dark={dark} onMenu={onMenu} title="Suporte" subtitle="Fale com a equipe Flüxa"/>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
-          <p className={cx('text-xs font-semibold mb-3 flex items-center gap-2',T.text(dark))}><HeadphonesIcon size={13}/>Nova mensagem</p>
+        <div className={cx('relative p-5 rounded-2xl border overflow-hidden',T.card(dark))}>
+          <div className={cx('absolute top-0 right-0 w-32 h-32 rounded-full -translate-y-8 translate-x-8 opacity-[0.06]','bg-sky-400')}/>
+          <div className="flex items-center gap-3 mb-4">
+            <div className={cx('w-10 h-10 rounded-xl flex items-center justify-center shrink-0',dark?'bg-sky-500/15':'bg-sky-100')}><HeadphonesIcon size={16} className={dark?'text-sky-400':'text-sky-600'}/></div>
+            <div>
+              <p className={cx('text-sm font-bold',T.text(dark))}>Falar com a equipe Flüxa</p>
+              <p className={cx('text-xs',T.muted(dark))}>Respondemos em até 24h úteis via WhatsApp</p>
+            </div>
+          </div>
           <Textarea dark={dark} value={msg} onChange={setMsg} placeholder="Descreva sua dúvida ou problema..." rows={4}/>
           <button onClick={send} disabled={sending}
-            className="mt-3 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-600 active:scale-95 text-white text-sm font-medium disabled:opacity-60 w-full justify-center transition-all">
-            {sending?<><RefreshCw size={13} className="animate-spin"/>Enviando...</>:<><Send size={13}/>Enviar ao Suporte</>}
+            className={cx('mt-3 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 active:scale-[0.98] text-white text-sm font-bold disabled:opacity-60 w-full justify-center shadow-md shadow-sky-500/20',T.tr)}>
+            {sending?<><RefreshCw size={13} className="animate-spin"/>Enviando...</>:<><Send size={13}/>Enviar mensagem</>}
           </button>
         </div>
-        <p className={cx('text-xs text-center',T.muted(dark))}>Respondemos em até 24h úteis via WhatsApp.</p>
         {tickets.length>0&&(
           <div className={cx('p-4 rounded-2xl border',T.card(dark))}>
             <p className={cx('text-xs font-semibold mb-3',T.text(dark))}>Histórico</p>
@@ -4352,7 +4398,9 @@ export default function App(){
     <div className={cx('flex h-screen w-screen overflow-hidden',T.bg(dark))} style={{fontFamily:"'DM Sans',system-ui,sans-serif"}}>
       <Sidebar active={tab} setActive={setTab} company={company} user={user} onLogout={logout} open={sideOpen} setOpen={setSideOpen} dark={dark} setDark={setDark}/>
       <main className="flex-1 flex flex-col overflow-hidden relative min-w-0">
-        {pages[tab]||pages[isHub?'hub_dashboard':'dashboard']}
+        <div key={tab} className="flex-1 flex flex-col overflow-hidden slide-up">
+          {pages[tab]||pages[isHub?'hub_dashboard':'dashboard']}
+        </div>
       </main>
       <Toast toasts={toasts} rm={rmToast}/>
       <Confirm dark={dark} open={logoutConfirm} onClose={()=>setLogoutConfirm(false)} onOk={doLogout} title="Sair da conta" msg="Tem certeza que deseja sair? Você precisará fazer login novamente."/>

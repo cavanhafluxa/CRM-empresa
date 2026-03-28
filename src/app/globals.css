@@ -10,12 +10,29 @@ html, body { height: 100%; font-family: 'DM Sans', system-ui, sans-serif; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
 
-@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn     { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 @keyframes slideRight { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
-@keyframes modalIn { from{opacity:0;transform:scale(0.96) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
-.fade-in { animation: fadeIn 0.25s ease; }
-.slide-right { animation: slideRight 0.25s ease; }
-.modal-in { animation: modalIn 0.15s cubic-bezier(0.16,1,0.3,1); }
+@keyframes modalIn    { from{opacity:0;transform:scale(0.96) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+@keyframes slideUp    { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes countIn    { from{opacity:0;transform:translateY(10px) scale(0.9)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+/* Floating shapes — login screen */
+@keyframes floatY    { 0%,100%{transform:translateY(0px) rotate(0deg);opacity:0.5} 50%{transform:translateY(-22px) rotate(180deg);opacity:0.9} }
+@keyframes floatXY   { 0%,100%{transform:translate(0px,0px) rotate(15deg);opacity:0.4} 50%{transform:translate(14px,-16px) rotate(195deg);opacity:0.8} }
+@keyframes floatDiag { 0%,100%{transform:translate(0,0) scale(1) rotate(-5deg);opacity:0.3} 50%{transform:translate(-10px,14px) scale(1.08) rotate(-5deg);opacity:0.7} }
+
+.fade-in    { animation: fadeIn 0.25s ease; }
+.slide-right{ animation: slideRight 0.25s ease; }
+.modal-in   { animation: modalIn 0.15s cubic-bezier(0.16,1,0.3,1); }
+.slide-up   { animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1); }
+.count-in   { animation: countIn 0.35s cubic-bezier(0.16,1,0.3,1); }
+
+.float-a { animation: floatY    7s   ease-in-out infinite; }
+.float-b { animation: floatXY   9s   ease-in-out infinite 1.2s; }
+.float-c { animation: floatDiag 11s  ease-in-out infinite 2.3s; }
+.float-d { animation: floatY    8.5s ease-in-out infinite 3.1s; }
+.float-e { animation: floatXY   6.5s ease-in-out infinite 0.7s; }
+.float-f { animation: floatDiag 10s  ease-in-out infinite 1.8s; }
 
 select option { background: #0f172a; color: white; }
 input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
